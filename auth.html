@@ -264,24 +264,50 @@ window.switchMode = function(){
 
 window.forgotPass = async function(){
 
-    const email =
-        prompt("Nhập email của bạn:");
+    let email = document
+        .getElementById("loginInput")
+        .value
+        .trim();
 
-    if(!email) return;
+    if(!email){
+        alert("Vui lòng nhập Email trước!");
+        return;
+    }
+
+    // Nếu người dùng nhập tên nhân vật
+    if(!email.includes("@")){
+
+        const q = query(
+            ref(db,"users"),
+            orderByChild("name"),
+            equalTo(email)
+        );
+
+        const snapshot = await get(q);
+
+        if(!snapshot.exists()){
+            alert("Không tìm thấy tài khoản!");
+            return;
+        }
+
+        const data =
+            Object.values(snapshot.val())[0];
+
+        email = data.email;
+    }
 
     try{
 
         await sendPasswordResetEmail(auth,email);
 
-        alert("Đã gửi email đặt lại mật khẩu.");
+        alert("Đã gửi email đặt lại mật khẩu!");
 
-    }catch(err){
+    }catch(error){
 
-        alert(err.message);
+        alert(error.message);
 
     }
 }
-
 window.handleAuth = async function(){
 
     const loginInput =
