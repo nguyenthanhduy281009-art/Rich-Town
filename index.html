@@ -80,11 +80,12 @@
 
 auth.onAuthStateChanged(user => {
 
-    isCheckingAuth = false;
+    console.log("AUTH USER:", user);
 
     if(user){
         loadUserData(user.uid);
     }else{
+        console.log("KHÔNG CÓ USER");
         window.location.href = "auth.html";
     }
 
