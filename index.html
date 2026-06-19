@@ -73,14 +73,17 @@
         const db = firebase.database();
 
         // 1. Kiểm tra đăng nhập
-        auth.onAuthStateChanged(user => {
-            if (!user) {
-                window.location.href = "auth.html";
-            } else {
-                loadUserData(user.uid);
-            }
-        });
-
+       // Thay đoạn onAuthStateChanged cũ bằng đoạn này
+auth.onAuthStateChanged(user => {
+    // Đợi 500ms để Firebase kịp tải session đăng nhập (tránh lỗi nhảy trang)
+    setTimeout(() => {
+        if (!user) {
+            window.location.href = "auth.html";
+        } else {
+            initGame(user); // Hoặc loadUserData(user.uid)
+        }
+    }, 500);
+});
         // 2. Load dữ liệu
         function loadUserData(uid) {
             db.ref('users/' + uid).once('value').then(snap => {
