@@ -1,1 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rich-Town | Lobby</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        :root { --gold: #FFD700; --dark: #1a1a1a; --glass: rgba(255, 255, 255, 0.05); }
+        body { font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle, #2c3e50, #000); color: white; margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Header Profile */
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--glass); backdrop-filter: blur(10px); }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .avatar { width: 50px; height: 50px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: black; font-size: 20px; }
+        .logout-btn { background: #ff4d4d; border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
 
+        /* Main Content */
+        main { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .play-btn { background: linear-gradient(135deg, #FFD700, #FFA500); border: none; padding: 25px 60px; font-size: 24px; font-weight: bold; border-radius: 50px; cursor: pointer; transition: transform 0.2s, box-shadow 0.3s; color: #000; box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3); }
+        .play-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px var(--gold); }
+
+        /* Bottom Nav */
+        footer { display: flex; justify-content: center; gap: 40px; padding: 30px; }
+        .nav-item { cursor: pointer; text-align: center; transition: 0.3s; }
+        .nav-item:hover { color: var(--gold); }
+        .nav-icon { font-size: 24px; display: block; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="user-info">
+            <div class="avatar" id="avatar-char">RT</div>
+            <div>
+                <div id="username" style="font-weight: bold; font-size: 18px;">Đang tải...</div>
+                <div id="userid" style="font-size: 12px; color: #888;">ID: ---</div>
+            </div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Đăng xuất</button>
+    </header>
+
+    <main>
+        <button class="play-btn" onclick="alert('Đang tìm trận đấu...')">🎲 CHƠI NGAY</button>
+    </main>
+
+    <footer>
+        <div class="nav-item">
+            <span class="nav-icon">👥</span>
+            <span>Bạn bè</span>
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">🛍️</span>
+            <span>Cửa hàng</span>
+        </div>
+    </footer>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBbdRgcZmqt5-ywPyssZ1C2CDoj11slDQs",
+            authDomain: "sky-dodge-8f537.firebaseapp.com",
+            databaseURL: "https://sky-dodge-8f537-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "sky-dodge-8f537",
+            storageBucket: "sky-dodge-8f537.firebasestorage.app",
+            messagingSenderId: "169224412363",
+            appId: "1:169224412363:web:de0d018158d8b34e854f4e"
+        };
+        
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // 1. Kiểm tra đăng nhập
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                window.location.href = "auth.html";
+            } else {
+                loadUserData(user.uid);
+            }
+        });
+
+        // 2. Load dữ liệu
+        function loadUserData(uid) {
+            db.ref('users/' + uid).once('value').then(snap => {
+                const data = snap.val();
+                if (data) {
+                    document.getElementById('username').innerText = data.name;
+                    document.getElementById('userid').innerText = "ID: " + uid.substring(0, 8).toUpperCase();
+                    document.getElementById('avatar-char').innerText = data.name.charAt(0).toUpperCase();
+                }
+            });
+        }
+
+        // 3. Đăng xuất
+        function logout() {
+            auth.signOut().then(() => {
+                window.location.href = "auth.html";
+            });
+        }
+    </script>
+</body>
+</html>
