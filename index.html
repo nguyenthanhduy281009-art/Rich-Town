@@ -74,16 +74,26 @@
 
         // 1. Kiểm tra đăng nhập
        // Thay đoạn onAuthStateChanged cũ bằng đoạn này
+       // Đặt một biến cờ để tránh việc redirect nhầm
+let isCheckingAuth = true;
+
 auth.onAuthStateChanged(user => {
-    // Đợi 500ms để Firebase kịp tải session đăng nhập (tránh lỗi nhảy trang)
-    setTimeout(() => {
-        if (!user) {
-            window.location.href = "auth.html";
-        } else {
-            initGame(user); // Hoặc loadUserData(user.uid)
-        }
-    }, 500);
+    isCheckingAuth = false; // Đã kiểm tra xong
+    if (user) {
+        // Nếu có user, bắt đầu load game
+        initGame(user);
+    } else {
+        // Nếu không có user, mới cho về trang đăng nhập
+        window.location.href = "auth.html";
+    }
 });
+
+// THÊM: Nếu sau 2 giây mà vẫn chưa xác thực xong thì coi như chưa đăng nhập
+setTimeout(() => {
+    if (isCheckingAuth) {
+        window.location.href = "auth.html";
+    }
+}, 2000);
         // 2. Load dữ liệu
         function loadUserData(uid) {
             db.ref('users/' + uid).once('value').then(snap => {
