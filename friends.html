@@ -11,36 +11,38 @@
 
   <style>
     :root{
-      --bg1:#0b1020;
-      --bg2:#111827;
-      --card:rgba(255,255,255,.07);
+      --bg1:#090d1a;
+      --bg2:#11182a;
+      --card:rgba(255,255,255,.06);
+      --card-2:rgba(255,255,255,.09);
       --line:rgba(255,255,255,.12);
-      --text:#fff;
-      --muted:#b8c0d4;
+      --text:#f8fbff;
+      --muted:#acb6c9;
       --gold:#ffd54a;
-      --green:#34d399;
-      --yellow:#facc15;
-      --blue:#60a5fa;
-      --gray:#94a3b8;
-      --red:#f87171;
-      --shadow:0 18px 60px rgba(0,0,0,.35);
-      --radius:22px;
+      --green:#2ddc84;
+      --yellow:#ffcf5c;
+      --blue:#5db0ff;
+      --gray:#8893a8;
+      --red:#ff7b7b;
+      --shadow:0 20px 60px rgba(0,0,0,.38);
+      --radius:24px;
     }
 
-    *{ box-sizing:border-box; }
+    *{box-sizing:border-box}
     body{
       margin:0;
       min-height:100vh;
       font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
       color:var(--text);
       background:
-        radial-gradient(circle at top left, rgba(96,165,250,.22), transparent 30%),
-        radial-gradient(circle at top right, rgba(255,213,74,.14), transparent 30%),
-        linear-gradient(135deg, var(--bg1), var(--bg2));
+        radial-gradient(circle at 10% 10%, rgba(93,176,255,.18), transparent 26%),
+        radial-gradient(circle at 90% 15%, rgba(255,213,74,.14), transparent 24%),
+        radial-gradient(circle at 50% 90%, rgba(45,220,132,.12), transparent 28%),
+        linear-gradient(135deg,var(--bg1),var(--bg2));
     }
 
-    .app{
-      max-width:1200px;
+    .wrap{
+      max-width:1280px;
       margin:0 auto;
       padding:18px;
       min-height:100vh;
@@ -49,29 +51,69 @@
       gap:16px;
     }
 
-    .topbar{
+    .hero{
+      padding:18px 20px;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.05));
+      backdrop-filter:blur(16px);
+      box-shadow:var(--shadow);
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
-      padding:18px 20px;
-      border:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.05));
-      backdrop-filter:blur(14px);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
+      gap:16px;
+      flex-wrap:wrap;
     }
 
-    .title-block h1{
+    .hero-left{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:0;
+    }
+
+    .hero-icon{
+      width:52px;
+      height:52px;
+      border-radius:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(135deg, rgba(255,213,74,.22), rgba(93,176,255,.16));
+      border:1px solid rgba(255,255,255,.12);
+      flex-shrink:0;
+      font-size:24px;
+    }
+
+    .hero h1{
       margin:0;
       font-size:22px;
-      letter-spacing:.5px;
+      letter-spacing:.3px;
     }
 
-    .title-block p{
+    .hero p{
       margin:6px 0 0;
       color:var(--muted);
       font-size:13px;
+    }
+
+    .hero-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-left:auto;
+    }
+
+    .chip{
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.12);
+      color:var(--text);
+      font-weight:700;
+      font-size:13px;
+      white-space:nowrap;
     }
 
     .back-btn{
@@ -81,9 +123,10 @@
       border-radius:14px;
       background:rgba(255,255,255,.08);
       color:#fff;
-      font-weight:700;
+      font-weight:800;
       border:1px solid var(--line);
       transition:.15s ease;
+      white-space:nowrap;
     }
 
     .back-btn:hover{
@@ -93,23 +136,30 @@
 
     .panel{
       border:1px solid var(--line);
-      background:rgba(255,255,255,.055);
-      backdrop-filter:blur(14px);
       border-radius:var(--radius);
+      background:rgba(255,255,255,.055);
+      backdrop-filter:blur(16px);
       box-shadow:var(--shadow);
       padding:16px;
     }
 
-    .search-row{
+    .toolbar{
       display:flex;
-      gap:10px;
+      gap:12px;
       align-items:center;
-      margin-bottom:16px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
     }
 
-    .search-row input{
+    .search{
+      flex:1;
+      min-width:240px;
+      position:relative;
+    }
+
+    .search input{
       width:100%;
-      padding:14px 16px;
+      padding:14px 16px 14px 46px;
       border-radius:16px;
       border:1px solid rgba(255,255,255,.12);
       outline:none;
@@ -118,15 +168,22 @@
       font-size:14px;
     }
 
-    .search-row input::placeholder{
-      color:#9aa6bc;
+    .search input::placeholder{ color:#95a2ba; }
+
+    .search .icon{
+      position:absolute;
+      left:14px;
+      top:50%;
+      transform:translateY(-50%);
+      color:#aeb9cf;
+      font-size:16px;
+      pointer-events:none;
     }
 
     .count{
-      margin-top:-4px;
-      margin-bottom:14px;
       color:var(--muted);
       font-size:13px;
+      font-weight:700;
     }
 
     .grid{
@@ -136,31 +193,34 @@
     }
 
     .friend-card{
+      position:relative;
+      overflow:hidden;
+      min-height:240px;
+      border-radius:22px;
       border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.05);
-      border-radius:20px;
-      padding:14px;
-      min-height:210px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+      padding:16px;
       display:flex;
       flex-direction:column;
       align-items:center;
       text-align:center;
-      transition:.15s ease;
-      overflow:hidden;
+      transition:.16s ease;
     }
 
     .friend-card:hover{
       transform:translateY(-2px);
-      border-color:rgba(255,255,255,.18);
-      background:rgba(255,255,255,.07);
+      background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      border-color:rgba(255,255,255,.16);
     }
 
     .avatar-wrap{
-      width:86px;
-      height:86px;
-      position:relative;
+      width:92px;
+      height:92px;
       margin-top:4px;
-      margin-bottom:12px;
+      margin-bottom:14px;
+      position:relative;
       flex-shrink:0;
     }
 
@@ -171,12 +231,12 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      background:linear-gradient(135deg, #ffd54a, #fff3b0);
+      background:linear-gradient(135deg, #ffd54a, #fff1b4);
       color:#121826;
       font-size:30px;
       font-weight:900;
-      box-shadow:0 12px 30px rgba(255,213,74,.18);
       overflow:hidden;
+      box-shadow:0 14px 30px rgba(255,213,74,.16);
     }
 
     .avatar img{
@@ -193,36 +253,36 @@
       width:18px;
       height:18px;
       border-radius:50%;
-      border:3px solid #111827;
+      border:3px solid #0f1423;
       background:var(--gray);
-      box-shadow:0 0 0 2px rgba(255,255,255,.03);
     }
 
-    .status-dot.online{ background:var(--green); }
-    .status-dot.room{ background:var(--yellow); }
-    .status-dot.playing{ background:var(--blue); }
-    .status-dot.offline{ background:var(--gray); }
+    .online{ background:var(--green); }
+    .room{ background:var(--yellow); }
+    .playing{ background:var(--blue); }
+    .offline{ background:var(--gray); }
 
     .name{
       font-size:16px;
-      font-weight:800;
+      font-weight:900;
       line-height:1.2;
       word-break:break-word;
+      margin-top:2px;
     }
 
     .id{
-      margin-top:6px;
+      margin-top:7px;
       color:var(--muted);
       font-size:13px;
       letter-spacing:.2px;
     }
 
-    .status{
-      margin-top:10px;
+    .status-pill{
+      margin-top:12px;
       display:inline-flex;
       align-items:center;
-      gap:6px;
-      padding:8px 12px;
+      gap:8px;
+      padding:9px 12px;
       border-radius:999px;
       background:rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.08);
@@ -230,63 +290,142 @@
       font-weight:800;
     }
 
-    .status.online{ color:#bbf7d0; }
-    .status.room{ color:#fef3c7; }
-    .status.playing{ color:#dbeafe; }
-    .status.offline{ color:#cbd5e1; }
+    .status-pill.online{ color:#c9ffe0; }
+    .status-pill.room{ color:#fff0bf; }
+    .status-pill.playing{ color:#d7ebff; }
+    .status-pill.offline{ color:#d6dbe4; }
 
-    .empty{
-      padding:30px 16px;
+    .empty-state{
+      grid-column:1/-1;
+      min-height:320px;
+      border-radius:22px;
+      border:1px dashed rgba(255,255,255,.16);
+      background:
+        radial-gradient(circle at top, rgba(255,213,74,.08), transparent 40%),
+        rgba(255,255,255,.03);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
       text-align:center;
+      padding:26px;
+      gap:10px;
+    }
+
+    .empty-emoji{
+      width:74px;
+      height:74px;
+      border-radius:22px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:32px;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    .empty-state h2{
+      margin:0;
+      font-size:20px;
+    }
+
+    .empty-state p{
+      margin:0;
+      max-width:420px;
       color:var(--muted);
-      border:1px dashed rgba(255,255,255,.14);
-      border-radius:18px;
-      background:rgba(255,255,255,.03);
+      line-height:1.55;
+    }
+
+    .empty-actions{
+      margin-top:8px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+
+    .btn{
+      border:none;
+      cursor:pointer;
+      padding:12px 16px;
+      border-radius:14px;
+      font-weight:800;
+      transition:.15s ease;
+    }
+
+    .btn.primary{
+      background:linear-gradient(135deg, #ffd54a, #fff1a8);
+      color:#111;
+    }
+
+    .btn.secondary{
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    .btn:hover{
+      transform:translateY(-1px);
     }
 
     .loading{
-      padding:30px 16px;
-      text-align:center;
+      grid-column:1/-1;
+      min-height:220px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       color:var(--muted);
+      border-radius:22px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
     }
 
-    @media (max-width: 1000px){
+    @media (max-width: 1050px){
       .grid{ grid-template-columns:repeat(3, minmax(0, 1fr)); }
     }
 
     @media (max-width: 760px){
-      .topbar{
-        flex-direction:column;
-        align-items:flex-start;
-      }
-
       .grid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
-      .friend-card{ min-height:200px; }
-      .search-row{ flex-direction:column; }
+      .hero{ padding:16px; }
       .back-btn{ width:100%; }
+      .hero-actions{ width:100%; }
+      .chip{ flex:1; text-align:center; }
     }
 
-    @media (max-width: 480px){
+    @media (max-width: 520px){
       .grid{ grid-template-columns:1fr; }
+      .toolbar{ flex-direction:column; align-items:stretch; }
+      .search{ min-width:0; }
+      .count{ text-align:center; }
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="topbar">
-      <div class="title-block">
-        <h1>👥 Bạn bè</h1>
-        <p>Danh sách bạn bè của bạn trong Rich-Town</p>
+  <div class="wrap">
+    <div class="hero">
+      <div class="hero-left">
+        <div class="hero-icon">👥</div>
+        <div>
+          <h1>Bạn bè</h1>
+          <p>Quản lý danh sách bạn bè của bạn trong Rich-Town</p>
+        </div>
       </div>
-      <button class="back-btn" onclick="window.location.href='index.html'">← Quay lại</button>
+
+      <div class="hero-actions">
+        <div class="chip" id="friendsCountChip">0 bạn bè</div>
+        <button class="back-btn" onclick="window.location.href='index.html'">← Quay lại</button>
+      </div>
     </div>
 
     <div class="panel">
-      <div class="search-row">
-        <input type="text" id="searchInput" placeholder="Tìm theo tên hoặc ID..." />
+      <div class="toolbar">
+        <div class="search">
+          <span class="icon">🔎</span>
+          <input id="searchInput" type="text" placeholder="Tìm theo tên hoặc ID..." />
+        </div>
+        <div class="count" id="countText">Đang tải...</div>
       </div>
 
-      <div class="count" id="countText">Đang tải...</div>
       <div class="grid" id="friendsGrid">
         <div class="loading">Đang tải danh sách bạn bè...</div>
       </div>
@@ -311,19 +450,21 @@
 
     const grid = document.getElementById("friendsGrid");
     const countText = document.getElementById("countText");
+    const friendsCountChip = document.getElementById("friendsCountChip");
     const searchInput = document.getElementById("searchInput");
 
     let currentUser = null;
     let allFriends = [];
 
     function initials(name) {
-      const clean = String(name || "RT").trim();
-      const parts = clean.split(/\s+/).filter(Boolean);
+      const s = String(name || "RT").trim();
+      if (!s) return "RT";
+      const parts = s.split(/\s+/).filter(Boolean);
       if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-      return clean.slice(0, 2).toUpperCase();
+      return s.slice(0, 2).toUpperCase();
     }
 
-    function statusLabel(status) {
+    function statusText(status) {
       switch ((status || "").toLowerCase()) {
         case "online": return "Online";
         case "room": return "Trong phòng";
@@ -341,7 +482,7 @@
       }
     }
 
-    function renderFriends(list) {
+    function render(list) {
       const q = searchInput.value.trim().toLowerCase();
       const filtered = list.filter(item => {
         const name = (item.name || "").toLowerCase();
@@ -350,33 +491,38 @@
       });
 
       countText.textContent = `Đang hiển thị ${filtered.length}/${list.length} bạn bè`;
+      friendsCountChip.textContent = `${list.length} bạn bè`;
 
       if (!filtered.length) {
         grid.innerHTML = `
-          <div class="empty" style="grid-column:1/-1;">
-            Không có bạn bè nào phù hợp.
+          <div class="empty-state">
+            <div class="empty-emoji">✨</div>
+            <h2>Chưa có bạn bè</h2>
+            <p>Danh sách của bạn đang trống. Khi có người chơi được thêm vào danh sách bạn bè, họ sẽ hiện ở đây với avatar, tên, ID và trạng thái.</p>
+            <div class="empty-actions">
+              <button class="btn primary" onclick="window.location.href='index.html'">Về trang chủ</button>
+              <button class="btn secondary" onclick="location.reload()">Tải lại</button>
+            </div>
           </div>
         `;
         return;
       }
 
       grid.innerHTML = filtered.map(item => {
-        const avatarHtml = item.avatarUrl
+        const cls = statusClass(item.status);
+        const avatar = item.avatarUrl
           ? `<img src="${item.avatarUrl}" alt="avatar">`
           : `<span>${initials(item.name)}</span>`;
 
         return `
           <div class="friend-card">
             <div class="avatar-wrap">
-              <div class="avatar">
-                ${avatarHtml}
-              </div>
-              <div class="status-dot ${statusClass(item.status)}"></div>
+              <div class="avatar">${avatar}</div>
+              <div class="status-dot ${cls}"></div>
             </div>
-
             <div class="name">${item.name || "Người chơi"}</div>
             <div class="id">ID: ${item.playerId || "---"}</div>
-            <div class="status ${statusClass(item.status)}">${statusLabel(item.status)}</div>
+            <div class="status-pill ${cls}">${statusText(item.status)}</div>
           </div>
         `;
       }).join("");
@@ -385,61 +531,59 @@
     async function loadFriends() {
       if (!currentUser) return;
 
-      grid.innerHTML = `<div class="loading" style="grid-column:1/-1;">Đang tải danh sách bạn bè...</div>`;
+      grid.innerHTML = `<div class="loading">Đang tải danh sách bạn bè...</div>`;
 
       try {
-        const friendsSnap = await db.ref(`friends/${currentUser.uid}`).once("value");
-        const friendsData = friendsSnap.val() || {};
+        const friendSnap = await db.ref(`friends/${currentUser.uid}`).once("value");
+        const friendData = friendSnap.val() || {};
+        const friendIds = Object.keys(friendData);
 
-        const friendIds = Object.keys(friendsData);
         if (!friendIds.length) {
           allFriends = [];
-          countText.textContent = "Bạn chưa có bạn bè nào";
-          grid.innerHTML = `
-            <div class="empty" style="grid-column:1/-1;">
-              Chưa có bạn bè. Hãy thêm bạn trong tương lai.
-            </div>
-          `;
+          render(allFriends);
           return;
         }
 
-        const result = await Promise.all(
-          friendIds.map(async uid => {
-            const snap = await db.ref(`users/${uid}`).once("value");
-            const u = snap.val() || {};
-            return {
-              uid,
-              name: u.name || "Người chơi",
-              playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
-              avatarUrl: u.avatar || u.avatarUrl || "",
-              status: u.status || "offline"
-            };
-          })
-        );
+        const result = await Promise.all(friendIds.map(async uid => {
+          const snap = await db.ref(`users/${uid}`).once("value");
+          const u = snap.val() || {};
+          return {
+            uid,
+            name: u.name || "Người chơi",
+            playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
+            avatarUrl: u.avatar || u.avatarUrl || "",
+            status: u.status || "offline"
+          };
+        }));
 
         allFriends = result;
-        renderFriends(allFriends);
+        render(allFriends);
       } catch (e) {
         console.error(e);
         grid.innerHTML = `
-          <div class="empty" style="grid-column:1/-1;">
-            Không tải được danh sách bạn bè.
+          <div class="empty-state">
+            <div class="empty-emoji">⚠️</div>
+            <h2>Không tải được danh sách</h2>
+            <p>Đã xảy ra lỗi khi lấy dữ liệu bạn bè từ Firebase.</p>
+            <div class="empty-actions">
+              <button class="btn primary" onclick="location.reload()">Thử lại</button>
+              <button class="btn secondary" onclick="window.location.href='index.html'">Về trang chủ</button>
+            </div>
           </div>
         `;
         countText.textContent = "Lỗi tải dữ liệu";
       }
     }
 
-    searchInput.addEventListener("input", () => renderFriends(allFriends));
+    searchInput.addEventListener("input", () => render(allFriends));
 
-    auth.onAuthStateChanged(async user => {
+    auth.onAuthStateChanged(user => {
       if (!user) {
         window.location.href = "auth.html";
         return;
       }
-
       currentUser = user;
-      await loadFriends();
+      loadFriends();
     });
   </script>
 </body>
