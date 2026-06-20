@@ -128,25 +128,6 @@ auth.onAuthStateChanged(user => {
     }
 
 });
-        const userRef = db.ref(`users/${user.uid}`);
-
-const connectedRef = db.ref(".info/connected");
-
-connectedRef.on("value", snap => {
-
-  if (!snap.val()) return;
-
-  userRef.onDisconnect().update({
-    status: "offline",
-    lastSeen: firebase.database.ServerValue.TIMESTAMP
-  });
-
-  userRef.update({
-    status: "online",
-    lastSeen: firebase.database.ServerValue.TIMESTAMP
-  });
-
-});
         // 2. Load dữ liệu
         function loadUserData(uid) {
             db.ref('users/' + uid).once('value').then(snap => {
@@ -166,15 +147,35 @@ connectedRef.on("value", snap => {
             });
         }
 
-        function createRoom() {
-    const roomId = Math.random().toString(36).substring(7).toUpperCase();
-    db.ref('rooms/' + roomId).set({
-        hostId: auth.currentUser.uid,
-        status: "waiting"
-    }).then(() => {
-        window.location.href = `room.html?id=${roomId}`;
+        async function createRoom() {
+
+    const roomId = Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase();
+
+    const user = auth.currentUser;
+
+    const userSnap = await db.ref("users/" + user.uid).once("value");
+    const data = userSnap.val();
+
+    await db.ref("rooms/" + roomId).set({
+        roomId: roomId,
+        hostId: user.uid,
+        status: "waiting",
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        players: {
+            [user.uid]: {
+                name: data.name,
+                ready: false,
+                role: "player",
+                joinedAt: firebase.database.ServerValue.TIMESTAMP
+            }
+        }
     });
-}      
+
+    window.location.href = `room.html?id=${roomId}`;
+}    
 
         function setupPresence(uid) {
 
