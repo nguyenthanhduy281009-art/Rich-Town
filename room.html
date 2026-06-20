@@ -653,6 +653,27 @@
             el.notice.textContent = msg;
         }
 
+        async function setupPresence() {
+    if (!currentUser) return;
+
+    const userRef = db.ref(`users/${currentUser.uid}`);
+    const connectedRef = db.ref(".info/connected");
+
+    connectedRef.on("value", (snap) => {
+        if (!snap.val()) return;
+
+        userRef.onDisconnect().update({
+            status: "offline",
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        userRef.update({
+            status: "room",
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+    });
+}
+        
         function escapeHtml(str) {
             return String(str || "")
                 .replaceAll("&", "&amp;")
@@ -1031,6 +1052,12 @@
 
         async function leaveRoom() {
             try {
+
+                await db.ref(`users/${currentUser.uid}`).update({
+                     status: "online",
+                     lastSeen: firebase.database.ServerValue.TIMESTAMP
+                });
+                
                 if (!currentRoom) {
                     await db.ref(`users/${currentUser.uid}`).update({
                         status: "online"
@@ -1078,6 +1105,8 @@
                 name: user.displayName || user.email || "Người chơi"
             };
 
+            await setupPresence();
+            
             if (!roomId) {
                 alert("Thiếu mã phòng.");
                 location.replace("index.html");
