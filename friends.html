@@ -743,7 +743,14 @@
           name: u.name || "Người chơi",
           playerId: u.playerId || u.id || uid.substring(0,6).toUpperCase(),
           avatarUrl: u.avatar || u.avatarUrl || "",
-          status: u.status || "offline"
+          status:
+(
+    u.status === "offline" &&
+    u.onlineUntil &&
+    Date.now() < u.onlineUntil
+)
+? "online"
+: (u.status || "offline")
         };
 
         const index =
@@ -956,7 +963,8 @@
 
         userRef.update({
           status: "online",
-          lastSeen: firebase.database.ServerValue.TIMESTAMP
+          lastSeen: firebase.database.ServerValue.TIMESTAMP,
+          onlineUntil: Date.now() + 3600
         });
       });
     }
