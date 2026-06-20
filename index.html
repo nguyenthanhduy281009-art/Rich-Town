@@ -115,10 +115,16 @@ auth.onAuthStateChanged(user => {
     console.log("AUTH USER:", user);
 
     if(user){
+
+        setupPresence(user.uid);
+
         loadUserData(user.uid);
+
     }else{
+
         console.log("KHÔNG CÓ USER");
         window.location.href = "auth.html";
+
     }
 
 });
@@ -170,6 +176,28 @@ connectedRef.on("value", snap => {
     });
 }      
 
+        function setupPresence(uid) {
+
+    const userRef = db.ref(`users/${uid}`);
+    const connectedRef = db.ref(".info/connected");
+
+    connectedRef.on("value", snap => {
+
+        if (!snap.val()) return;
+
+        userRef.onDisconnect().update({
+            status: "offline",
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        userRef.update({
+            status: "online",
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+
+    });
+
+}
     async function joinRoom() {
 
     const roomId = document
@@ -196,10 +224,11 @@ connectedRef.on("value", snap => {
     const data = userSnap.val();
 
     await db.ref(`rooms/${roomId}/players/${user.uid}`).set({
-        name: data.name,
-        ready: false,
-        role: "player"
-    });
+    name: data.name,
+    ready: false,
+    role: "player",
+    joinedAt: firebase.database.ServerValue.TIMESTAMP
+});
 
     window.location.href = `room.html?id=${roomId}`;
 }
