@@ -78,15 +78,16 @@
     </main>
 
     <footer>
-        <div class="nav-item">
-            <span class="nav-icon">👥</span>
-            <span>Bạn bè</span>
-        </div>
-        <div class="nav-item">
-            <span class="nav-icon">🛍️</span>
-            <span>Cửa hàng</span>
-        </div>
-    </footer>
+    <div class="nav-item" onclick="window.location.href='friend.html'">
+        <span class="nav-icon">👥</span>
+        <span>Bạn bè</span>
+    </div>
+
+    <div class="nav-item" onclick="window.location.href='shop.html'">
+        <span class="nav-icon">🛍️</span>
+        <span>Cửa hàng</span>
+    </div>
+</footer>
 
     <script>
         const firebaseConfig = {
@@ -148,6 +149,55 @@ auth.onAuthStateChanged(user => {
     }).then(() => {
         window.location.href = `room.html?id=${roomId}`;
     });
+}      
+        function joinRoom() {
+
+    const roomId = document
+        .getElementById("roomCode")
+        .value
+        .trim()
+        .toUpperCase();
+
+    const user = auth.currentUser;
+
+    if (!roomId) {
+        alert("Nhập mã phòng!");
+        return;
+    }
+
+    db.ref("rooms/" + roomId)
+    .once("value")
+    .then(roomSnap => {
+
+        if (!roomSnap.exists()) {
+            alert("Phòng không tồn tại!");
+            return;
+        }
+
+        return db.ref("users/" + user.uid)
+        .once("value")
+        .then(userSnap => {
+
+            const data = userSnap.val();
+
+            return db.ref(
+                `rooms/${roomId}/players/${user.uid}`
+            ).set({
+                name: data.name,
+                ready: false,
+                role: "player"
+            });
+
+        });
+
+    })
+    .then(() => {
+
+        window.location.href =
+            `room.html?id=${roomId}`;
+
+    });
+
 }
     </script>
 </body>
