@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rich-Town | Phòng Chờ</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        :root { --gold: #FFD700; --dark: #1a1a1a; }
+        body { font-family: sans-serif; background: #121212; color: white; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .slot { background: #222; height: 100px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .role-selector { margin-top: 20px; background: #222; padding: 15px; border-radius: 8px; }
+        .status-ready { color: #4CAF50; font-weight: bold; }
+        .host-badge { color: var(--gold); font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div id="room-id-display" style="font-size: 20px; font-weight: bold;">MÃ PHÒNG: ---</div>
+    <div><button onclick="leaveRoom()" style="background: #ff4d4d; color: white;" class="btn">THOÁT</button></div>
+</div>
+
+<div class="grid" id="players-grid"></div>
+
+<div class="role-selector">
+    <h3>Chọn vai trò:</h3>
+    <button class="btn" onclick="updateRole('Màn Hình Chính')">🖥️ Màn Hình Chính</button>
+    <button class="btn" onclick="updateRole('Ngân Hàng')">🏦 Ngân Hàng</button>
+    <button class="btn" onclick="updateRole('Người Chơi')">🙂 Người Chơi</button>
+</div>
+
+<div style="margin-top: 20px; text-align: center;">
+    <button id="main-action-btn" class="btn" style="background: var(--gold); color: #000; padding: 15px 40px; font-size: 18px;" onclick="handleMainAction()">SẴN SÀNG</button>
+</div>
+
+<script>
+// --- CẤU HÌNH ---
+const firebaseConfig = { /* DÁN CONFIG VÀO ĐÂY */ };
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
+
+// Lấy mã phòng từ URL (vd: room.html?id=ROOM123)
+const params = new URLSearchParams(window.location.search);
+const roomId = params.get('id');
+let currentUser = null;
+let isHost = false;
+
+// 1. Kiểm tra đăng nhập và khởi tạo phòng
+auth.onAuthStateChanged(user => {
+    if (!user) return window.location.href = "auth.html";
+    currentUser = user;
+    joinRoom();
+});
+
+function joinRoom() {
+    if (!roomId) return alert("Không tìm thấy phòng!");
+    document.getElementById('room-id-display').innerText = "MÃ PHÒNG: " + roomId;
+
+    const playerRef = db.ref(`rooms/${roomId}/players/${currentUser.uid}`);
+    
+    // Thêm vào phòng
+    playerRef.set({
+        name: currentUser.displayName || "Người chơi",
+        role: "Chưa chọn",
+        ready: false
+    });
+
+    // Xóa khi thoát
+    playerRef.onDisconnect().remove();
+
+    // Lắng nghe dữ liệu phòng
+    db.ref(`rooms/${roomId}`).on('value', snap => {
+        const roomData = snap.val();
+        if (!roomData) return window.location.href = "index.html"; // Phòng bị xóa
+        
+        // Kiểm tra Host
+        isHost = (roomData.hostId === currentUser.uid);
+        
+        // Cập nhật giao diện
+        renderLobby(roomData.players);
+        
+        // Cập nhật nút chính
+        const btn = document.getElementById('main-action-btn');
+        btn.innerText = isHost ? "BẮT ĐẦU TRẬN" : (roomData.players[currentUser.uid].ready ? "ĐÃ SẴN SÀNG" : "SẴN SÀNG");
+    });
+}
+
+// 2. Render danh sách người chơi
+function renderLobby(players) {
+    const grid = document.getElementById('players-grid');
+    grid.innerHTML = "";
+    
+    Object.keys(players).forEach(uid => {
+        const p = players[uid];
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.innerHTML = `
+            ${uid === currentUser.uid ? '<b>(Bạn)</b>' : ''}
+            <div>${p.name}</div>
+            <div style="font-size: 10px">${p.role}</div>
+            ${p.ready ? '<div class="status-ready">✓ Sẵn sàng</div>' : ''}
+        `;
+        grid.appendChild(slot);
+    });
+}
+
+// 3. Chọn vai trò
+async function updateRole(role) {
+    const snap = await db.ref(`rooms/${roomId}/players`).once('value');
+    const players = snap.val();
+
+    // Kiểm tra trùng vai trò (chỉ check cho đặc biệt)
+    if (role !== "Người Chơi") {
+        const isTaken = Object.values(players).some(p => p.role === role);
+        if (isTaken) return alert("Vai trò này đã có người chọn!");
+    }
+
+    db.ref(`rooms/${roomId}/players/${currentUser.uid}`).update({ role: role });
+}
+
+// 4. Hành động chính (Ready hoặc Start)
+async function handleMainAction() {
+    if (isHost) {
+        // Logics bắt đầu
+        const snap = await db.ref(`rooms/${roomId}`).once('value');
+        const data = snap.val();
+        const players = Object.values(data.players);
+        
+        if (players.length < 4) return alert("Cần ít nhất 4 người!");
+        
+        // Kiểm tra vai trò
+        const hasMain = players.some(p => p.role === "Màn Hình Chính");
+        const hasBank = players.some(p => p.role === "Ngân Hàng");
+        if (!hasMain || !hasBank) return alert("Thiếu vai trò quan trọng!");
+        
+        // Kiểm tra sẵn sàng
+        const allReady = players.every(p => p.ready);
+        if (!allReady) return alert("Có người chưa sẵn sàng!");
+
+        db.ref(`rooms/${roomId}`).update({ status: 'playing' });
+        window.location.href = "game.html";
+    } else {
+        // Toggle Ready
+        const snap = await db.ref(`rooms/${roomId}/players/${currentUser.uid}`).once('value');
+        const ready = snap.val().ready;
+        db.ref(`rooms/${roomId}/players/${currentUser.uid}`).update({ ready: !ready });
+    }
+}
+
+// 5. Rời phòng
+function leaveRoom() {
+    db.ref(`rooms/${roomId}/players/${currentUser.uid}`).remove();
+    window.location.href = "index.html";
+}
+</script>
+</body>
+</html>
