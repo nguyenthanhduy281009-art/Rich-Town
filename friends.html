@@ -711,52 +711,63 @@
       }).join("");
     }
 
-    async function loadFriends() {
-      if (!currentUser) return;
-      friendsGrid.innerHTML = `<div class="loading">Đang tải danh sách bạn bè...</div>`;
+    function loadFriends() {
 
-      try {
-        db.ref(`friends/${currentUser.uid}`)
-         .on("value", async (snap) => {
-          const data = snap.val() || {};
-          const ids = Object.keys(data);
+  if (!currentUser) return;
 
-          if (!ids.length) {
-            allFriends = [];
-            renderFriends();
-            if (searchInput.value.trim()) searchPlayers();
-            return;
-          }
+  db.ref(`friends/${currentUser.uid}`)
+  .on("value", async (snap) => {
 
-          const result = await Promise.all(ids.map(async uid => {
-            const userSnap = await db.ref(`users/${uid}`).once("value");
-            const u = userSnap.val() || {};
-            return {
-              uid,
-              name: u.name || "Người chơi",
-              playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
-              avatarUrl: u.avatar || u.avatarUrl || "",
-              status: u.status || "offline"
-            };
-          }));
+    const data = snap.val() || {};
+    const ids = Object.keys(data);
 
-          allFriends = result;
-          renderFriends();
-          if (searchInput.value.trim()) searchPlayers();
-        });
+    if (!ids.length) {
 
+      allFriends = [];
+      renderFriends();
+      return;
 
-      } catch (e) {
-        console.error(e);
-        friendsGrid.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-emoji">⚠️</div>
-            <h2>Không tải được danh sách</h2>
-            <p>Đã xảy ra lỗi khi lấy dữ liệu bạn bè từ Firebase.</p>
-          </div>
-        `;
-      }
     }
+
+    allFriends = [];
+
+    ids.forEach(uid => {
+
+      db.ref(`users/${uid}`)
+      .on("value", userSnap => {
+
+        const u = userSnap.val() || {};
+
+        const friendData = {
+          uid,
+          name: u.name || "Người chơi",
+          playerId: u.playerId || u.id || uid.substring(0,6).toUpperCase(),
+          avatarUrl: u.avatar || u.avatarUrl || "",
+          status: u.status || "offline"
+        };
+
+        const index =
+          allFriends.findIndex(f => f.uid === uid);
+
+        if(index === -1){
+
+          allFriends.push(friendData);
+
+        } else {
+
+          allFriends[index] = friendData;
+
+        }
+
+        renderFriends();
+
+      });
+
+    });
+
+  });
+
+}
 
     async function loadRequests() {
       if (!currentUser) return;
