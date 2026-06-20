@@ -589,6 +589,7 @@
         return !q || name.includes(q) || id.includes(q);
       });
 
+      countText.textContent = `Đang hiển thị ${filtered.length}/${allFriends.length} bạn bè`;
       friendsCountChip.textContent = `${allFriends.length} bạn bè`;
       friendCountText.textContent = `${allFriends.length} người`;
 
