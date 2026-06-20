@@ -3,162 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rich-Town | Phòng Chờ</title>
+    <title>Rich-Town | Room Lobby</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root { --gold: #FFD700; --dark: #1a1a1a; }
-        body { font-family: sans-serif; background: #121212; color: white; margin: 0; padding: 20px; }
-        .header { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-        .slot { background: #222; height: 100px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .role-selector { margin-top: 20px; background: #222; padding: 15px; border-radius: 8px; }
-        .status-ready { color: #4CAF50; font-weight: bold; }
-        .host-badge { color: var(--gold); font-size: 12px; }
+        :root { --bg: #0f0c29; --glass: rgba(255, 255, 255, 0.1); --accent: #6c63ff; --ready: #4CAF50; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #fff; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        
+        .lobby-container { width: 900px; background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* Header */
+        .header { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px; }
+        
+        /* Players Grid */
+        .players-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .player-slot { height: 100px; background: rgba(0,0,0,0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border: 2px dashed rgba(255,255,255,0.1); transition: 0.3s; }
+        .player-slot.occupied { border: 2px solid var(--accent); background: rgba(108, 99, 255, 0.2); }
+        .avatar { width: 40px; height: 40px; background: #555; border-radius: 50%; margin-bottom: 5px; }
+        .ready-badge { position: absolute; top: 5px; right: 5px; font-size: 12px; background: var(--ready); padding: 2px 6px; border-radius: 4px; display: none; }
+        
+        /* Split Content */
+        .content-body { display: flex; gap: 20px; }
+        .panel { flex: 1; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; }
+        
+        /* Roles */
+        .role-btn { display: block; width: 100%; padding: 10px; margin: 5px 0; background: #2a2a4a; border: none; color: white; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .role-btn:hover { background: var(--accent); }
+        
+        /* Footer */
+        .actions { margin-top: 20px; display: flex; justify-content: center; gap: 15px; }
+        .btn-main { padding: 12px 30px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-leave { background: #ff4d4d; color: white; }
+        .btn-start { background: var(--ready); color: white; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div id="room-id-display" style="font-size: 20px; font-weight: bold;">MÃ PHÒNG: ---</div>
-    <div><button onclick="leaveRoom()" style="background: #ff4d4d; color: white;" class="btn">THOÁT</button></div>
-</div>
+<div class="lobby-container">
+    <div class="header">
+        <div>MÃ PHÒNG: <span id="r-code" style="color:var(--accent); font-weight:bold;">---</span></div>
+        <div id="host-display">👑 CHỦ PHÒNG: ---</div>
+    </div>
 
-<div class="grid" id="players-grid"></div>
+    <div class="players-grid" id="players-list">
+        <div class="player-slot">+</div>
+        <div class="player-slot">+</div>
+        <div class="player-slot">+</div>
+        <div class="player-slot">+</div>
+        <div class="player-slot">+</div>
+        <div class="player-slot">+</div>
+        <div class="player-slot">+</div>
+        <div class="player-slot">+</div>
+    </div>
 
-<div class="role-selector">
-    <h3>Chọn vai trò:</h3>
-    <button class="btn" onclick="updateRole('Màn Hình Chính')">🖥️ Màn Hình Chính</button>
-    <button class="btn" onclick="updateRole('Ngân Hàng')">🏦 Ngân Hàng</button>
-    <button class="btn" onclick="updateRole('Người Chơi')">🙂 Người Chơi</button>
-</div>
+    <div class="content-body">
+        <div class="panel">
+            <h3>Chọn vai trò</h3>
+            <button class="role-btn" onclick="setRole('Màn Hình Chính')">🖥️ Màn Hình Chính</button>
+            <button class="role-btn" onclick="setRole('Ngân Hàng')">🏦 Ngân Hàng</button>
+            <button class="role-btn" onclick="setRole('Người Chơi')">🙂 Người Chơi</button>
+            <p id="role-msg" style="font-size: 12px; color: #ffeb3b;"></p>
+        </div>
+        <div class="panel">
+            <h3>Bạn bè Online</h3>
+            <div id="friends-list" style="font-size: 13px;">
+                <div style="margin-bottom: 5px;">🟢 Nguyễn Thành Duy [MỜI]</div>
+                <div style="margin-bottom: 5px;">🔴 Minh [MỜI]</div>
+            </div>
+        </div>
+    </div>
 
-<div style="margin-top: 20px; text-align: center;">
-    <button id="main-action-btn" class="btn" style="background: var(--gold); color: #000; padding: 15px 40px; font-size: 18px;" onclick="handleMainAction()">SẴN SÀNG</button>
+    <div class="actions">
+        <button class="btn-main btn-leave" onclick="leaveRoom()">THOÁT</button>
+        <button id="btn-action" class="btn-main btn-start" onclick="handleAction()">SẴN SÀNG</button>
+    </div>
 </div>
 
 <script>
-// --- CẤU HÌNH ---
-const firebaseConfig = { /* DÁN CONFIG VÀO ĐÂY */ };
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const auth = firebase.auth();
+    // 1. Firebase Config
+    const firebaseConfig = { /* DÁN CONFIG VÀO ĐÂY */ };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
 
-// Lấy mã phòng từ URL (vd: room.html?id=ROOM123)
-const params = new URLSearchParams(window.location.search);
-const roomId = params.get('id');
-let currentUser = null;
-let isHost = false;
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('id');
+    let isHost = false;
 
-// 1. Kiểm tra đăng nhập và khởi tạo phòng
-auth.onAuthStateChanged(user => {
-    if (!user) return window.location.href = "auth.html";
-    currentUser = user;
-    joinRoom();
-});
-
-function joinRoom() {
-    if (!roomId) return alert("Không tìm thấy phòng!");
-    document.getElementById('room-id-display').innerText = "MÃ PHÒNG: " + roomId;
-
-    const playerRef = db.ref(`rooms/${roomId}/players/${currentUser.uid}`);
-    
-    // Thêm vào phòng
-    playerRef.set({
-        name: currentUser.displayName || "Người chơi",
-        role: "Chưa chọn",
-        ready: false
+    // 2. Logic chính
+    auth.onAuthStateChanged(user => {
+        if (!user) window.location.href = "auth.html";
+        
+        // Lắng nghe dữ liệu phòng
+        db.ref(`rooms/${roomId}`).on('value', snap => {
+            const data = snap.val();
+            if(!data) return window.location.href = "index.html";
+            
+            isHost = (data.hostId === user.uid);
+            renderLobby(data, user.uid);
+        });
     });
 
-    // Xóa khi thoát
-    playerRef.onDisconnect().remove();
-
-    // Lắng nghe dữ liệu phòng
-    db.ref(`rooms/${roomId}`).on('value', snap => {
-        const roomData = snap.val();
-        if (!roomData) return window.location.href = "index.html"; // Phòng bị xóa
+    function renderLobby(data, uid) {
+        document.getElementById('r-code').innerText = roomId;
+        document.getElementById('host-display').innerText = `👑 CHỦ PHÒNG: ${Object.values(data.players).find(p=>p.uid===data.hostId)?.name || '...'}`;
         
-        // Kiểm tra Host
-        isHost = (roomData.hostId === currentUser.uid);
-        
-        // Cập nhật giao diện
-        renderLobby(roomData.players);
-        
-        // Cập nhật nút chính
-        const btn = document.getElementById('main-action-btn');
-        btn.innerText = isHost ? "BẮT ĐẦU TRẬN" : (roomData.players[currentUser.uid].ready ? "ĐÃ SẴN SÀNG" : "SẴN SÀNG");
-    });
-}
-
-// 2. Render danh sách người chơi
-function renderLobby(players) {
-    const grid = document.getElementById('players-grid');
-    grid.innerHTML = "";
-    
-    Object.keys(players).forEach(uid => {
-        const p = players[uid];
-        const slot = document.createElement('div');
-        slot.className = 'slot';
-        slot.innerHTML = `
-            ${uid === currentUser.uid ? '<b>(Bạn)</b>' : ''}
-            <div>${p.name}</div>
-            <div style="font-size: 10px">${p.role}</div>
-            ${p.ready ? '<div class="status-ready">✓ Sẵn sàng</div>' : ''}
-        `;
-        grid.appendChild(slot);
-    });
-}
-
-// 3. Chọn vai trò
-async function updateRole(role) {
-    const snap = await db.ref(`rooms/${roomId}/players`).once('value');
-    const players = snap.val();
-
-    // Kiểm tra trùng vai trò (chỉ check cho đặc biệt)
-    if (role !== "Người Chơi") {
-        const isTaken = Object.values(players).some(p => p.role === role);
-        if (isTaken) return alert("Vai trò này đã có người chọn!");
-    }
-
-    db.ref(`rooms/${roomId}/players/${currentUser.uid}`).update({ role: role });
-}
-
-// 4. Hành động chính (Ready hoặc Start)
-async function handleMainAction() {
-    if (isHost) {
-        // Logics bắt đầu
-        const snap = await db.ref(`rooms/${roomId}`).once('value');
-        const data = snap.val();
+        // Render Players
+        const slots = document.querySelectorAll('.player-slot');
         const players = Object.values(data.players);
         
-        if (players.length < 4) return alert("Cần ít nhất 4 người!");
-        
-        // Kiểm tra vai trò
-        const hasMain = players.some(p => p.role === "Màn Hình Chính");
-        const hasBank = players.some(p => p.role === "Ngân Hàng");
-        if (!hasMain || !hasBank) return alert("Thiếu vai trò quan trọng!");
-        
-        // Kiểm tra sẵn sàng
-        const allReady = players.every(p => p.ready);
-        if (!allReady) return alert("Có người chưa sẵn sàng!");
+        slots.forEach((slot, index) => {
+            if (players[index]) {
+                const p = players[index];
+                slot.className = 'player-slot occupied';
+                slot.innerHTML = `<div class="avatar"></div>${p.name}<div class="ready-badge" style="display:${p.ready?'block':'none'}">✓</div>`;
+            } else {
+                slot.className = 'player-slot';
+                slot.innerHTML = '+';
+            }
+        });
 
-        db.ref(`rooms/${roomId}`).update({ status: 'playing' });
-        window.location.href = "game.html";
-    } else {
-        // Toggle Ready
-        const snap = await db.ref(`rooms/${roomId}/players/${currentUser.uid}`).once('value');
-        const ready = snap.val().ready;
-        db.ref(`rooms/${roomId}/players/${currentUser.uid}`).update({ ready: !ready });
+        // Nút hành động
+        const btn = document.getElementById('btn-action');
+        if (isHost) {
+            btn.innerText = "BẮT ĐẦU";
+            btn.className = "btn-main btn-start";
+        } else {
+            const myData = data.players[uid];
+            btn.innerText = myData.ready ? "ĐÃ SẴN SÀNG" : "SẴN SÀNG";
+            btn.style.background = myData.ready ? "#ff9800" : "#4CAF50";
+        }
     }
-}
 
-// 5. Rời phòng
-function leaveRoom() {
-    db.ref(`rooms/${roomId}/players/${currentUser.uid}`).remove();
-    window.location.href = "index.html";
-}
+    async function setRole(role) {
+        const snap = await db.ref(`rooms/${roomId}/players`).once('value');
+        const players = Object.values(snap.val());
+        
+        // Validation
+        if (role !== "Người Chơi") {
+            const taken = players.some(p => p.role === role);
+            if (taken) return document.getElementById('role-msg').innerText = `${role} đã có người chọn!`;
+        }
+        
+        db.ref(`rooms/${roomId}/players/${auth.currentUser.uid}`).update({ role });
+        document.getElementById('role-msg').innerText = "";
+    }
+
+    async function handleAction() {
+        const snap = await db.ref(`rooms/${roomId}`).once('value');
+        const data = snap.val();
+        
+        if (isHost) {
+            // Logic Bắt đầu
+            const players = Object.values(data.players);
+            if (players.length < 4) return alert("Cần ít nhất 4 người!");
+            if (!players.every(p => p.ready)) return alert("Còn người chưa sẵn sàng!");
+            if (!players.some(p => p.role === "Màn Hình Chính") || !players.some(p => p.role === "Ngân Hàng")) 
+                return alert("Thiếu vai trò quan trọng!");
+            
+            db.ref(`rooms/${roomId}`).update({ status: 'playing' });
+            window.location.href = "game.html";
+        } else {
+            // Logic Sẵn sàng
+            const myRef = db.ref(`rooms/${roomId}/players/${auth.currentUser.uid}`);
+            const readySnap = await myRef.once('value');
+            myRef.update({ ready: !readySnap.val().ready });
+        }
+    }
+
+    function leaveRoom() {
+        db.ref(`rooms/${roomId}/players/${auth.currentUser.uid}`).remove();
+        window.location.href = "index.html";
+    }
 </script>
 </body>
 </html>
