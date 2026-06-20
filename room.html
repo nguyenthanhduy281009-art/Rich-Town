@@ -605,6 +605,30 @@
         let currentRoom = null;
         let friendsLoaded = false;
 
+        function setupPresence(uid) {
+
+    const userRef = db.ref(`users/${uid}`);
+    const connectedRef = db.ref(".info/connected");
+
+    connectedRef.on("value", (snap) => {
+
+        if (snap.val() === true) {
+
+            userRef.onDisconnect().update({
+                status: "offline",
+                lastSeen: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            userRef.update({
+                status: "online",
+                lastSeen: firebase.database.ServerValue.TIMESTAMP
+            });
+
+        }
+
+    });
+
+}
         const el = {
             roomCode: document.getElementById("roomCode"),
             playerCount: document.getElementById("playerCount"),
@@ -990,7 +1014,14 @@
                 alert("Có người chơi chưa sẵn sàng.");
                 return;
             }
+            const updates = {};
 
+            Object.keys(players).forEach(uid => {
+            updates[`users/${uid}/status`] = "playing";
+            });
+
+            await db.ref().update(updates);
+            
             await roomRef.update({
                 status: "playing"
             });
@@ -1001,6 +1032,9 @@
         async function leaveRoom() {
             try {
                 if (!currentRoom) {
+                    await db.ref(`users/${currentUser.uid}`).update({
+                        status: "online"
+                    });
                     location.replace("index.html");
                     return;
                 }
@@ -1037,6 +1071,8 @@
 
             currentUser = user;
 
+            setupPresence(user.uid);
+
             const userSnap = await db.ref(`users/${user.uid}`).once("value");
             currentUserData = userSnap.val() || {
                 name: user.displayName || user.email || "Người chơi"
@@ -1063,6 +1099,9 @@
                 location.replace("index.html");
             }
         });
+        await db.ref(`users/${currentUser.uid}`).update({
+    status: "room"
+});
     </script>
 </body>
 </html>
