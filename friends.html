@@ -716,7 +716,8 @@
       friendsGrid.innerHTML = `<div class="loading">Đang tải danh sách bạn bè...</div>`;
 
       try {
-        const snap = await db.ref(`friends/${currentUser.uid}`).on("value", async snap => {
+        db.ref(`friends/${currentUser.uid}`)
+         .on("value", async (snap) => {
           const data = snap.val() || {};
           const ids = Object.keys(data);
 
@@ -744,7 +745,7 @@
           if (searchInput.value.trim()) searchPlayers();
         });
 
-        return snap;
+
       } catch (e) {
         console.error(e);
         friendsGrid.innerHTML = `
@@ -980,6 +981,13 @@
       }
 
       currentUser = user;
+
+      db.ref("users")
+      .on("value", () => {
+
+         loadFriends();
+
+     });
 
       const profileSnap = await db.ref(`users/${user.uid}`).once("value");
       const profile = profileSnap.val() || {};
