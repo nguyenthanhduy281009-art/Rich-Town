@@ -122,6 +122,25 @@ auth.onAuthStateChanged(user => {
     }
 
 });
+        const userRef = db.ref(`users/${user.uid}`);
+
+const connectedRef = db.ref(".info/connected");
+
+connectedRef.on("value", snap => {
+
+  if (!snap.val()) return;
+
+  userRef.onDisconnect().update({
+    status: "offline",
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+  });
+
+  userRef.update({
+    status: "online",
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+  });
+
+});
         // 2. Load dữ liệu
         function loadUserData(uid) {
             db.ref('users/' + uid).once('value').then(snap => {
