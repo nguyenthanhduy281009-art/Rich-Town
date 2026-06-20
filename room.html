@@ -1,181 +1,1068 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rich-Town | Room Lobby</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rich-Town | Room</title>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
     <style>
-        :root { --bg: #0f0c29; --glass: rgba(255, 255, 255, 0.1); --accent: #6c63ff; --ready: #4CAF50; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #fff; height: 100vh; display: flex; justify-content: center; align-items: center; }
-        
-        .lobby-container { width: 900px; background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        /* Header */
-        .header { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px; }
-        
-        /* Players Grid */
-        .players-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
-        .player-slot { height: 100px; background: rgba(0,0,0,0.3); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border: 2px dashed rgba(255,255,255,0.1); transition: 0.3s; }
-        .player-slot.occupied { border: 2px solid var(--accent); background: rgba(108, 99, 255, 0.2); }
-        .avatar { width: 40px; height: 40px; background: #555; border-radius: 50%; margin-bottom: 5px; }
-        .ready-badge { position: absolute; top: 5px; right: 5px; font-size: 12px; background: var(--ready); padding: 2px 6px; border-radius: 4px; display: none; }
-        
-        /* Split Content */
-        .content-body { display: flex; gap: 20px; }
-        .panel { flex: 1; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; }
-        
-        /* Roles */
-        .role-btn { display: block; width: 100%; padding: 10px; margin: 5px 0; background: #2a2a4a; border: none; color: white; border-radius: 6px; cursor: pointer; transition: 0.2s; }
-        .role-btn:hover { background: var(--accent); }
-        
-        /* Footer */
-        .actions { margin-top: 20px; display: flex; justify-content: center; gap: 15px; }
-        .btn-main { padding: 12px 30px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-leave { background: #ff4d4d; color: white; }
-        .btn-start { background: var(--ready); color: white; }
+        :root{
+            --bg1:#0c1020;
+            --bg2:#111827;
+            --card:rgba(255,255,255,.07);
+            --card-2:rgba(255,255,255,.09);
+            --line:rgba(255,255,255,.12);
+            --text:#ffffff;
+            --muted:#b7c0d1;
+            --gold:#ffd54a;
+            --green:#34d399;
+            --red:#fb7185;
+            --blue:#60a5fa;
+            --shadow:0 18px 60px rgba(0,0,0,.35);
+            --radius:22px;
+        }
+
+        *{ box-sizing:border-box; }
+        body{
+            margin:0;
+            min-height:100vh;
+            color:var(--text);
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(96,165,250,.25), transparent 30%),
+                radial-gradient(circle at top right, rgba(255,213,74,.18), transparent 28%),
+                radial-gradient(circle at bottom left, rgba(52,211,153,.12), transparent 30%),
+                linear-gradient(135deg, var(--bg1), var(--bg2));
+        }
+
+        .app{
+            max-width: 1450px;
+            margin: 0 auto;
+            padding: 18px;
+            min-height:100vh;
+            display:flex;
+            flex-direction:column;
+            gap:16px;
+        }
+
+        .topbar{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:16px;
+            padding:18px 20px;
+            border:1px solid var(--line);
+            background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.05));
+            backdrop-filter: blur(14px);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .room-info{
+            display:flex;
+            flex-wrap:wrap;
+            align-items:center;
+            gap:12px 18px;
+        }
+
+        .room-chip{
+            padding:10px 14px;
+            border-radius:999px;
+            background: rgba(255,255,255,.08);
+            border:1px solid var(--line);
+            color:var(--text);
+            font-weight:700;
+            letter-spacing:.4px;
+        }
+
+        .room-chip.gold{
+            background: linear-gradient(135deg, rgba(255,213,74,.2), rgba(255,213,74,.08));
+            border-color: rgba(255,213,74,.25);
+            color: #fff8cf;
+        }
+
+        .notice{
+            margin-left:auto;
+            color:var(--muted);
+            font-size:14px;
+        }
+
+        .layout{
+            flex:1;
+            display:grid;
+            grid-template-columns: minmax(0, 1.75fr) 360px;
+            gap:16px;
+            align-items:stretch;
+        }
+
+        .left-panel,
+        .right-panel{
+            border:1px solid var(--line);
+            background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.045));
+            backdrop-filter: blur(14px);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow:hidden;
+        }
+
+        .left-panel{
+            padding:16px;
+            display:flex;
+            flex-direction:column;
+            gap:16px;
+        }
+
+        .right-panel{
+            padding:16px;
+            display:flex;
+            flex-direction:column;
+            gap:14px;
+        }
+
+        .section-title{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            margin-bottom:10px;
+        }
+
+        .section-title h3{
+            margin:0;
+            font-size:16px;
+            letter-spacing:.3px;
+        }
+
+        .section-title span{
+            color:var(--muted);
+            font-size:13px;
+        }
+
+        .players-card,
+        .role-card,
+        .friends-card,
+        .actions-card,
+        .status-card{
+            border:1px solid var(--line);
+            background: rgba(255,255,255,.05);
+            border-radius: 20px;
+            padding:14px;
+        }
+
+        .players-grid{
+            display:grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap:12px;
+        }
+
+        .player-slot{
+            min-height:108px;
+            border-radius:18px;
+            border:1px dashed rgba(255,255,255,.18);
+            background: rgba(255,255,255,.03);
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+            align-items:center;
+            text-align:center;
+            padding:12px;
+            position:relative;
+            overflow:hidden;
+            transition: transform .15s ease, border-color .15s ease, background .15s ease;
+        }
+
+        .player-slot:hover{
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,.28);
+            background: rgba(255,255,255,.05);
+        }
+
+        .player-slot.empty{
+            color: rgba(255,255,255,.45);
+            font-size:34px;
+            font-weight:800;
+        }
+
+        .avatar{
+            width:44px;
+            height:44px;
+            border-radius:50%;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:800;
+            color:#0b1020;
+            background: linear-gradient(135deg, #ffd54a, #fff3af);
+            box-shadow: 0 10px 24px rgba(255,213,74,.25);
+            margin-bottom:8px;
+            flex-shrink:0;
+        }
+
+        .name{
+            font-weight:700;
+            line-height:1.1;
+            word-break:break-word;
+        }
+
+        .sub{
+            margin-top:5px;
+            font-size:12px;
+            color:var(--muted);
+        }
+
+        .badge{
+            position:absolute;
+            top:10px;
+            right:10px;
+            padding:6px 8px;
+            border-radius:999px;
+            font-size:11px;
+            font-weight:700;
+            color:#0b1020;
+            background:var(--gold);
+        }
+
+        .badge.ready{
+            background: linear-gradient(135deg, #34d399, #86efac);
+        }
+
+        .badge.host{
+            background: linear-gradient(135deg, #f8b84e, #ffd54a);
+        }
+
+        .slot.me{
+            border-color: rgba(96,165,250,.55);
+            box-shadow: inset 0 0 0 1px rgba(96,165,250,.18);
+        }
+
+        .slot.ready{
+            border-color: rgba(52,211,153,.6);
+            box-shadow: inset 0 0 0 1px rgba(52,211,153,.15);
+        }
+
+        .slot.host{
+            border-color: rgba(255,213,74,.7);
+        }
+
+        .role-buttons{
+            display:grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap:12px;
+        }
+
+        .role-btn{
+            border:none;
+            border-radius:18px;
+            padding:14px 12px;
+            color:#fff;
+            cursor:pointer;
+            background: rgba(255,255,255,.08);
+            border:1px solid rgba(255,255,255,.12);
+            transition: transform .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
+            text-align:left;
+        }
+
+        .role-btn:hover{
+            transform: translateY(-1px);
+            background: rgba(255,255,255,.11);
+            border-color: rgba(255,255,255,.2);
+        }
+
+        .role-btn .r1{
+            display:block;
+            font-size:15px;
+            font-weight:800;
+            margin-bottom:4px;
+        }
+
+        .role-btn .r2{
+            display:block;
+            font-size:12px;
+            color:var(--muted);
+        }
+
+        .role-btn.taken{
+            opacity:.45;
+            cursor:not-allowed;
+        }
+
+        .role-btn.active{
+            background: linear-gradient(135deg, rgba(96,165,250,.25), rgba(96,165,250,.12));
+            border-color: rgba(96,165,250,.35);
+            box-shadow: inset 0 0 0 1px rgba(96,165,250,.18);
+        }
+
+        .friend-list{
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+            max-height: 490px;
+            overflow:auto;
+            padding-right:4px;
+        }
+
+        .friend-item{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            padding:12px;
+            border-radius:16px;
+            background: rgba(255,255,255,.05);
+            border:1px solid rgba(255,255,255,.08);
+        }
+
+        .friend-left{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            min-width:0;
+        }
+
+        .friend-avatar{
+            width:38px;
+            height:38px;
+            border-radius:50%;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:800;
+            background: linear-gradient(135deg, rgba(255,213,74,.95), rgba(255,243,175,.95));
+            color:#111827;
+            flex-shrink:0;
+        }
+
+        .friend-meta{
+            min-width:0;
+        }
+
+        .friend-name{
+            font-weight:700;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            max-width:170px;
+        }
+
+        .friend-sub{
+            font-size:12px;
+            color:var(--muted);
+            margin-top:3px;
+        }
+
+        .invite-btn{
+            border:none;
+            border-radius:999px;
+            padding:9px 12px;
+            background: linear-gradient(135deg, rgba(52,211,153,.9), rgba(134,239,172,.9));
+            color:#062012;
+            font-weight:800;
+            cursor:pointer;
+            flex-shrink:0;
+        }
+
+        .actions-card{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            margin-top:auto;
+        }
+
+        .actions-left{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .action-btn{
+            border:none;
+            border-radius:16px;
+            padding:14px 18px;
+            font-weight:900;
+            cursor:pointer;
+            transition: transform .15s ease, filter .15s ease, opacity .15s ease;
+            min-width: 140px;
+        }
+
+        .action-btn:hover{
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+
+        .action-btn.exit{
+            background: rgba(251,113,133,.15);
+            color:#ffd1da;
+            border:1px solid rgba(251,113,133,.22);
+        }
+
+        .action-btn.ready{
+            background: linear-gradient(135deg, rgba(96,165,250,.9), rgba(125,211,252,.95));
+            color:#03111e;
+        }
+
+        .action-btn.start{
+            background: linear-gradient(135deg, rgba(255,213,74,.95), rgba(255,238,159,.98));
+            color:#151515;
+        }
+
+        .action-btn.done{
+            background: linear-gradient(135deg, rgba(52,211,153,.95), rgba(134,239,172,.98));
+            color:#062012;
+        }
+
+        .status-card{
+            padding:14px 16px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+        }
+
+        .status-pill{
+            padding:8px 12px;
+            border-radius:999px;
+            background: rgba(255,255,255,.08);
+            border:1px solid rgba(255,255,255,.12);
+            color:var(--muted);
+            font-size:13px;
+            font-weight:700;
+        }
+
+        .status-pill.ok{
+            color:#e6fff2;
+            background: rgba(52,211,153,.14);
+            border-color: rgba(52,211,153,.2);
+        }
+
+        .status-pill.warn{
+            color:#fff2cf;
+            background: rgba(255,213,74,.12);
+            border-color: rgba(255,213,74,.2);
+        }
+
+        .small{
+            color:var(--muted);
+            font-size:13px;
+            line-height:1.45;
+        }
+
+        .loading{
+            padding:14px;
+            color:var(--muted);
+        }
+
+        @media (max-width: 1100px){
+            .layout{
+                grid-template-columns: 1fr;
+            }
+            .right-panel{
+                order:2;
+            }
+        }
+
+        @media (max-width: 780px){
+            .topbar{
+                flex-direction:column;
+                align-items:flex-start;
+            }
+
+            .notice{
+                margin-left:0;
+            }
+
+            .players-grid{
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .role-buttons{
+                grid-template-columns: 1fr;
+            }
+
+            .actions-card{
+                flex-direction:column;
+                align-items:stretch;
+            }
+
+            .actions-left{
+                width:100%;
+            }
+
+            .action-btn{
+                width:100%;
+                min-width:0;
+            }
+        }
     </style>
 </head>
 <body>
-
-<div class="lobby-container">
-    <div class="header">
-        <div>MÃ PHÒNG: <span id="r-code" style="color:var(--accent); font-weight:bold;">---</span></div>
-        <div id="host-display">👑 CHỦ PHÒNG: ---</div>
-    </div>
-
-    <div class="players-grid" id="players-list">
-        <div class="player-slot">+</div>
-        <div class="player-slot">+</div>
-        <div class="player-slot">+</div>
-        <div class="player-slot">+</div>
-        <div class="player-slot">+</div>
-        <div class="player-slot">+</div>
-        <div class="player-slot">+</div>
-        <div class="player-slot">+</div>
-    </div>
-
-    <div class="content-body">
-        <div class="panel">
-            <h3>Chọn vai trò</h3>
-            <button class="role-btn" onclick="setRole('Màn Hình Chính')">🖥️ Màn Hình Chính</button>
-            <button class="role-btn" onclick="setRole('Ngân Hàng')">🏦 Ngân Hàng</button>
-            <button class="role-btn" onclick="setRole('Người Chơi')">🙂 Người Chơi</button>
-            <p id="role-msg" style="font-size: 12px; color: #ffeb3b;"></p>
+    <div class="app">
+        <div class="topbar">
+            <div class="room-info">
+                <div class="room-chip gold">MÃ PHÒNG: <span id="roomCode">---</span></div>
+                <div class="room-chip">NGƯỜI CHƠI: <span id="playerCount">0/8</span></div>
+                <div class="room-chip">CHỦ PHÒNG: <span id="hostName">---</span></div>
+            </div>
+            <div class="notice" id="notice">Đang tải phòng...</div>
         </div>
-        <div class="panel">
-            <h3>Bạn bè Online</h3>
-            <div id="friends-list" style="font-size: 13px;">
-                <div style="margin-bottom: 5px;">🟢 Nguyễn Thành Duy [MỜI]</div>
-                <div style="margin-bottom: 5px;">🔴 Minh [MỜI]</div>
+
+        <div class="layout">
+            <div class="left-panel">
+                <div class="players-card">
+                    <div class="section-title">
+                        <h3>KHU VỰC NGƯỜI CHƠI</h3>
+                        <span>8 ô tối đa</span>
+                    </div>
+                    <div class="players-grid" id="playersGrid"></div>
+                </div>
+
+                <div class="role-card">
+                    <div class="section-title">
+                        <h3>CHỌN VAI TRÒ</h3>
+                        <span>Chỉ 1 Màn Hình Chính, 1 Ngân Hàng</span>
+                    </div>
+                    <div class="role-buttons">
+                        <button class="role-btn" id="btnMainScreen" onclick="chooseRole('mainScreen')">
+                            <span class="r1">🖥️ Màn Hình Chính</span>
+                            <span class="r2" id="txtMainScreen">Có thể chọn</span>
+                        </button>
+
+                        <button class="role-btn" id="btnBank" onclick="chooseRole('bank')">
+                            <span class="r1">🏦 Ngân Hàng</span>
+                            <span class="r2" id="txtBank">Có thể chọn</span>
+                        </button>
+
+                        <button class="role-btn" id="btnPlayer" onclick="chooseRole('player')">
+                            <span class="r1">🙂 Người Chơi</span>
+                            <span class="r2" id="txtPlayer">Luôn sẵn sàng</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="actions-card">
+                    <div>
+                        <div class="section-title" style="margin:0 0 6px 0;">
+                            <h3>THAO TÁC</h3>
+                            <span id="myRoleLabel">Đang kiểm tra...</span>
+                        </div>
+                        <div class="small" id="roomHint">Bạn đang ở trong phòng chờ.</div>
+                    </div>
+
+                    <div class="actions-left" id="actionButtons"></div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="friends-card">
+                    <div class="section-title">
+                        <h3>BẠN BÈ ONLINE</h3>
+                        <span>Chạm để mời</span>
+                    </div>
+                    <div class="friend-list" id="friendsList">
+                        <div class="loading">Đang tải danh sách...</div>
+                    </div>
+                </div>
+
+                <div class="status-card">
+                    <div>
+                        <div style="font-weight:800; font-size:15px;">Trạng thái phòng</div>
+                        <div class="small" id="statusText">waiting</div>
+                    </div>
+                    <div class="status-pill" id="statusPill">ĐANG CHỜ</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="actions">
-        <button class="btn-main btn-leave" onclick="leaveRoom()">THOÁT</button>
-        <button id="btn-action" class="btn-main btn-start" onclick="handleAction()">SẴN SÀNG</button>
-    </div>
-</div>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCeg9m4AuIJxr6PCxYnC7WJ4hmWgJPB180",
+            authDomain: "rich-town.firebaseapp.com",
+            databaseURL: "https://rich-town-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "rich-town",
+            storageBucket: "rich-town.firebasestorage.app",
+            messagingSenderId: "404583018538",
+            appId: "1:404583018538:web:2bdeb6f2d26f7aa4221353",
+            measurementId: "G-K2S8KPCW45"
+        };
 
-<script>
-    // 1. Firebase Config
-    const firebaseConfig = { /* DÁN CONFIG VÀO ĐÂY */ };
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const auth = firebase.auth();
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const roomId = urlParams.get('id');
-    let isHost = false;
+        const auth = firebase.auth();
+        const db = firebase.database();
 
-    // 2. Logic chính
-    auth.onAuthStateChanged(user => {
-        if (!user) window.location.href = "auth.html";
-        
-        // Lắng nghe dữ liệu phòng
-        db.ref(`rooms/${roomId}`).on('value', snap => {
-            const data = snap.val();
-            if(!data) return window.location.href = "index.html";
-            
-            isHost = (data.hostId === user.uid);
-            renderLobby(data, user.uid);
-        });
-    });
+        const params = new URLSearchParams(location.search);
+        const roomId = (params.get("id") || "").trim().toUpperCase();
 
-    function renderLobby(data, uid) {
-        document.getElementById('r-code').innerText = roomId;
-        document.getElementById('host-display').innerText = `👑 CHỦ PHÒNG: ${Object.values(data.players).find(p=>p.uid===data.hostId)?.name || '...'}`;
-        
-        // Render Players
-        const slots = document.querySelectorAll('.player-slot');
-        const players = Object.values(data.players);
-        
-        slots.forEach((slot, index) => {
-            if (players[index]) {
-                const p = players[index];
-                slot.className = 'player-slot occupied';
-                slot.innerHTML = `<div class="avatar"></div>${p.name}<div class="ready-badge" style="display:${p.ready?'block':'none'}">✓</div>`;
+        const roomRef = roomId ? db.ref("rooms/" + roomId) : null;
+
+        let currentUser = null;
+        let currentUserData = null;
+        let currentRoom = null;
+        let friendsLoaded = false;
+
+        const el = {
+            roomCode: document.getElementById("roomCode"),
+            playerCount: document.getElementById("playerCount"),
+            hostName: document.getElementById("hostName"),
+            playersGrid: document.getElementById("playersGrid"),
+            friendsList: document.getElementById("friendsList"),
+            notice: document.getElementById("notice"),
+            statusText: document.getElementById("statusText"),
+            statusPill: document.getElementById("statusPill"),
+            actionButtons: document.getElementById("actionButtons"),
+            myRoleLabel: document.getElementById("myRoleLabel"),
+            roomHint: document.getElementById("roomHint"),
+            btnMainScreen: document.getElementById("btnMainScreen"),
+            btnBank: document.getElementById("btnBank"),
+            btnPlayer: document.getElementById("btnPlayer"),
+            txtMainScreen: document.getElementById("txtMainScreen"),
+            txtBank: document.getElementById("txtBank"),
+            txtPlayer: document.getElementById("txtPlayer")
+        };
+
+        function setNotice(msg) {
+            el.notice.textContent = msg;
+        }
+
+        function escapeHtml(str) {
+            return String(str || "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function initials(name) {
+            const clean = String(name || "RT").trim();
+            if (!clean) return "RT";
+            const parts = clean.split(/\s+/).filter(Boolean);
+            if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            return clean.slice(0, 2).toUpperCase();
+        }
+
+        function getPlayerEntries(players) {
+            return Object.entries(players || {}).sort((a, b) => {
+                const aa = a[1].joinedAt || 0;
+                const bb = b[1].joinedAt || 0;
+                return aa - bb;
+            });
+        }
+
+        function getExclusiveRoleOccupied(players, role, ignoreUid) {
+            return getPlayerEntries(players).some(([uid, p]) => uid !== ignoreUid && p.role === role);
+        }
+
+        function getRoleStatusText(players, role, uid) {
+            const mine = players?.[uid]?.role === role;
+            if (mine) return "Đã chọn";
+            if (role === "player") return "Luôn sẵn sàng";
+            return getExclusiveRoleOccupied(players, role, uid) ? "Đã có người chọn" : "Có thể chọn";
+        }
+
+        function renderPlayers(room) {
+            const players = room.players || {};
+            const entries = getPlayerEntries(players);
+            const hostId = room.hostId || "";
+
+            el.playerCount.textContent = `${entries.length}/8`;
+            el.hostName.textContent = entries.find(([uid]) => uid === hostId)?.[1]?.name || "Chưa xác định";
+
+            const slots = [];
+            for (let i = 0; i < 8; i++) {
+                const item = entries[i];
+                if (!item) {
+                    slots.push(`
+                        <div class="player-slot empty">
+                            +
+                            <div class="sub">Ô trống</div>
+                        </div>
+                    `);
+                    continue;
+                }
+
+                const [uid, player] = item;
+                const isMe = uid === currentUser?.uid;
+                const isHost = uid === hostId;
+                const ready = !!player.ready;
+
+                const classes = ["player-slot", "slot"];
+                if (isMe) classes.push("me");
+                if (isHost) classes.push("host");
+                if (ready) classes.push("ready");
+
+                const badges = [];
+                if (isHost) badges.push(`<div class="badge host">👑 Host</div>`);
+                if (ready) badges.push(`<div class="badge ready" style="${isHost ? 'top:42px;' : ''}">✓ Sẵn sàng</div>`);
+
+                slots.push(`
+                    <div class="${classes.join(" ")}">
+                        ${badges.join("")}
+                        <div class="avatar">${escapeHtml(initials(player.name))}</div>
+                        <div class="name">${escapeHtml(player.name || "Người chơi")}</div>
+                        <div class="sub">${isMe ? "Bạn" : "Trong phòng"}</div>
+                    </div>
+                `);
+            }
+
+            el.playersGrid.innerHTML = slots.join("");
+        }
+
+        function renderRoles(room) {
+            const players = room.players || {};
+            const myUid = currentUser?.uid;
+            const myRole = players?.[myUid]?.role || "player";
+
+            const mainTaken = getExclusiveRoleOccupied(players, "mainScreen", myUid);
+            const bankTaken = getExclusiveRoleOccupied(players, "bank", myUid);
+
+            const mainMine = myRole === "mainScreen";
+            const bankMine = myRole === "bank";
+            const playerMine = myRole === "player";
+
+            el.txtMainScreen.textContent = getRoleStatusText(players, "mainScreen", myUid);
+            el.txtBank.textContent = getRoleStatusText(players, "bank", myUid);
+            el.txtPlayer.textContent = getRoleStatusText(players, "player", myUid);
+
+            el.btnMainScreen.classList.toggle("taken", mainTaken && !mainMine);
+            el.btnBank.classList.toggle("taken", bankTaken && !bankMine);
+            el.btnPlayer.classList.toggle("taken", false);
+
+            el.btnMainScreen.classList.toggle("active", mainMine);
+            el.btnBank.classList.toggle("active", bankMine);
+            el.btnPlayer.classList.toggle("active", playerMine);
+
+            el.btnMainScreen.disabled = mainTaken && !mainMine;
+            el.btnBank.disabled = bankTaken && !bankMine;
+            el.btnPlayer.disabled = false;
+
+            el.myRoleLabel.textContent = mainMine
+                ? "Vai trò của bạn: Màn Hình Chính"
+                : bankMine
+                    ? "Vai trò của bạn: Ngân Hàng"
+                    : "Vai trò của bạn: Người Chơi";
+        }
+
+        function renderActions(room) {
+            const players = room.players || {};
+            const myUid = currentUser?.uid;
+            const isHost = room.hostId === myUid;
+            const me = players?.[myUid];
+            const isReady = !!me?.ready;
+
+            el.actionButtons.innerHTML = "";
+
+            if (isHost) {
+                const leaveBtn = document.createElement("button");
+                leaveBtn.className = "action-btn exit";
+                leaveBtn.textContent = "THOÁT";
+                leaveBtn.onclick = leaveRoom;
+
+                const startBtn = document.createElement("button");
+                startBtn.className = "action-btn start";
+                startBtn.textContent = "BẮT ĐẦU";
+                startBtn.onclick = startGame;
+
+                el.actionButtons.appendChild(leaveBtn);
+                el.actionButtons.appendChild(startBtn);
+                el.roomHint.textContent = "Bạn là chủ phòng. Chỉ bạn mới được bấm Bắt đầu.";
             } else {
-                slot.className = 'player-slot';
-                slot.innerHTML = '+';
+                const leaveBtn = document.createElement("button");
+                leaveBtn.className = "action-btn exit";
+                leaveBtn.textContent = "THOÁT";
+                leaveBtn.onclick = leaveRoom;
+
+                const readyBtn = document.createElement("button");
+                readyBtn.className = "action-btn " + (isReady ? "done" : "ready");
+                readyBtn.textContent = isReady ? "✓ ĐÃ SẴN SÀNG" : "SẴN SÀNG";
+                readyBtn.onclick = toggleReady;
+
+                el.actionButtons.appendChild(leaveBtn);
+                el.actionButtons.appendChild(readyBtn);
+                el.roomHint.textContent = "Hãy chọn vai trò rồi bấm Sẵn sàng.";
+            }
+        }
+
+        function renderRoom(room) {
+            currentRoom = room;
+
+            el.roomCode.textContent = room.roomId || roomId || "---";
+            el.statusText.textContent = room.status || "waiting";
+
+            if (room.status === "playing") {
+                el.statusPill.textContent = "ĐANG CHƠI";
+                el.statusPill.className = "status-pill ok";
+            } else {
+                el.statusPill.textContent = "ĐANG CHỜ";
+                el.statusPill.className = "status-pill warn";
+            }
+
+            renderPlayers(room);
+            renderRoles(room);
+            renderActions(room);
+            setNotice(room.status === "playing" ? "Phòng đã bắt đầu, đang chuyển vào game..." : "Phòng đang chờ người chơi.");
+        }
+
+        async function ensureJoinedRoom() {
+            if (!roomRef) {
+                alert("Thiếu mã phòng.");
+                location.replace("index.html");
+                return;
+            }
+
+            const roomSnap = await roomRef.once("value");
+            if (!roomSnap.exists()) {
+                alert("Phòng không tồn tại!");
+                location.replace("index.html");
+                return;
+            }
+
+            const room = roomSnap.val() || {};
+            const players = room.players || {};
+            const count = Object.keys(players).length;
+
+            if (room.status === "playing") {
+                alert("Phòng đã bắt đầu!");
+                location.replace("game.html?id=" + roomId);
+                return;
+            }
+
+            if (!players[currentUser.uid]) {
+                if (count >= 8) {
+                    alert("Phòng đã đầy!");
+                    location.replace("index.html");
+                    return;
+                }
+
+                const name = currentUserData?.name || currentUser.displayName || currentUser.email || "Người chơi";
+                await roomRef.child(`players/${currentUser.uid}`).set({
+                    name: name,
+                    ready: false,
+                    role: "player",
+                    joinedAt: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+        }
+
+        function watchRoom() {
+            roomRef.on("value", snap => {
+                if (!snap.exists()) {
+                    alert("Phòng đã bị xóa!");
+                    location.replace("index.html");
+                    return;
+                }
+
+                const room = snap.val() || {};
+
+                if (room.status === "playing") {
+                    renderRoom(room);
+                    setTimeout(() => {
+                        location.replace("game.html?id=" + roomId);
+                    }, 400);
+                    return;
+                }
+
+                renderRoom(room);
+            });
+        }
+
+        async function loadFriends() {
+            try {
+                const snap = await db.ref("users").once("value");
+                const users = snap.val() || {};
+                const list = Object.entries(users)
+                    .filter(([uid]) => uid !== currentUser.uid)
+                    .map(([uid, u]) => ({ uid, name: u?.name || "Người chơi" }))
+                    .slice(0, 12);
+
+                if (!list.length) {
+                    el.friendsList.innerHTML = `<div class="loading">Chưa có ai khác trong hệ thống.</div>`;
+                    return;
+                }
+
+                el.friendsList.innerHTML = list.map(item => `
+                    <div class="friend-item">
+                        <div class="friend-left">
+                            <div class="friend-avatar">${escapeHtml(initials(item.name))}</div>
+                            <div class="friend-meta">
+                                <div class="friend-name">${escapeHtml(item.name)}</div>
+                                <div class="friend-sub">Sẵn sàng để mời</div>
+                            </div>
+                        </div>
+                        <button class="invite-btn" onclick="inviteFriend('${item.uid}', '${escapeHtml(item.name)}')">MỜI</button>
+                    </div>
+                `).join("");
+            } catch (e) {
+                el.friendsList.innerHTML = `<div class="loading">Không tải được danh sách bạn bè.</div>`;
+            }
+        }
+
+        window.inviteFriend = async function(uid, name) {
+            try {
+                await navigator.clipboard.writeText(roomId);
+                alert(`Đã copy mã phòng để mời ${name}.`);
+            } catch (e) {
+                prompt(`Gửi mã này cho ${name}:`, roomId);
+            }
+        };
+
+        window.chooseRole = async function(role) {
+            if (!currentUser || !currentRoom) return;
+
+            const room = currentRoom;
+            const players = room.players || {};
+            const me = players[currentUser.uid];
+
+            if (!me) {
+                alert("Bạn chưa ở trong phòng.");
+                return;
+            }
+
+            if (role === "mainScreen" || role === "bank") {
+                const occupied = getExclusiveRoleOccupied(players, role, currentUser.uid);
+                if (occupied && me.role !== role) {
+                    alert("Vai trò này đã có người chọn!");
+                    return;
+                }
+            }
+
+            try {
+                await roomRef.child(`players/${currentUser.uid}/role`).set(role);
+                setNotice("Đã cập nhật vai trò.");
+            } catch (e) {
+                console.error(e);
+                alert("Không thể chọn vai trò.");
+            }
+        };
+
+        window.toggleReady = async function() {
+            if (!currentUser || !currentRoom) return;
+
+            const me = currentRoom.players?.[currentUser.uid];
+            if (!me) return;
+
+            const next = !me.ready;
+            try {
+                await roomRef.child(`players/${currentUser.uid}/ready`).set(next);
+                setNotice(next ? "Bạn đã sẵn sàng." : "Bạn đã bỏ sẵn sàng.");
+            } catch (e) {
+                console.error(e);
+                alert("Không thể đổi trạng thái sẵn sàng.");
+            }
+        };
+
+        async function startGame() {
+            if (!currentRoom || currentRoom.hostId !== currentUser.uid) return;
+
+            const roomSnap = await roomRef.once("value");
+            const room = roomSnap.val() || {};
+            const entries = getPlayerEntries(room.players || {});
+            const players = room.players || {};
+
+            if (entries.length < 2) {
+                alert("Cần ít nhất 2 người trong phòng.");
+                return;
+            }
+
+            const hasMain = entries.some(([, p]) => p.role === "mainScreen");
+            const hasBank = entries.some(([, p]) => p.role === "bank");
+            const allReady = entries.every(([uid, p]) => {
+                if (uid === room.hostId) return true;
+                return p.ready === true;
+            });
+
+            if (!hasMain) {
+                alert("Cần chọn Màn Hình Chính.");
+                return;
+            }
+
+            if (!hasBank) {
+                alert("Cần chọn Ngân Hàng.");
+                return;
+            }
+
+            if (!allReady) {
+                alert("Có người chơi chưa sẵn sàng.");
+                return;
+            }
+
+            await roomRef.update({
+                status: "playing"
+            });
+
+            location.replace("game.html?id=" + roomId);
+        }
+
+        async function leaveRoom() {
+            try {
+                if (!currentRoom) {
+                    location.replace("index.html");
+                    return;
+                }
+
+                const room = currentRoom;
+                const uid = currentUser.uid;
+                const players = room.players || {};
+                const me = players[uid];
+
+                const updates = {};
+                updates[`rooms/${roomId}/players/${uid}`] = null;
+
+                const remaining = Object.entries(players).filter(([id]) => id !== uid);
+
+                if (remaining.length === 0) {
+                    updates[`rooms/${roomId}`] = null;
+                } else if (room.hostId === uid) {
+                    updates[`rooms/${roomId}/hostId`] = remaining[0][0];
+                }
+
+                await db.ref().update(updates);
+                location.replace("index.html");
+            } catch (e) {
+                console.error(e);
+                location.replace("index.html");
+            }
+        }
+
+        auth.onAuthStateChanged(async user => {
+            if (!user) {
+                location.replace("auth.html");
+                return;
+            }
+
+            currentUser = user;
+
+            const userSnap = await db.ref(`users/${user.uid}`).once("value");
+            currentUserData = userSnap.val() || {
+                name: user.displayName || user.email || "Người chơi"
+            };
+
+            if (!roomId) {
+                alert("Thiếu mã phòng.");
+                location.replace("index.html");
+                return;
+            }
+
+            if (!friendsLoaded) {
+                friendsLoaded = true;
+                loadFriends();
+            }
+
+            try {
+                await ensureJoinedRoom();
+                setNotice("Đã vào phòng.");
+                watchRoom();
+            } catch (e) {
+                console.error(e);
+                alert("Không thể vào phòng.");
+                location.replace("index.html");
             }
         });
-
-        // Nút hành động
-        const btn = document.getElementById('btn-action');
-        if (isHost) {
-            btn.innerText = "BẮT ĐẦU";
-            btn.className = "btn-main btn-start";
-        } else {
-            const myData = data.players[uid];
-            btn.innerText = myData.ready ? "ĐÃ SẴN SÀNG" : "SẴN SÀNG";
-            btn.style.background = myData.ready ? "#ff9800" : "#4CAF50";
-        }
-    }
-
-    async function setRole(role) {
-        const snap = await db.ref(`rooms/${roomId}/players`).once('value');
-        const players = Object.values(snap.val());
-        
-        // Validation
-        if (role !== "Người Chơi") {
-            const taken = players.some(p => p.role === role);
-            if (taken) return document.getElementById('role-msg').innerText = `${role} đã có người chọn!`;
-        }
-        
-        db.ref(`rooms/${roomId}/players/${auth.currentUser.uid}`).update({ role });
-        document.getElementById('role-msg').innerText = "";
-    }
-
-    async function handleAction() {
-        const snap = await db.ref(`rooms/${roomId}`).once('value');
-        const data = snap.val();
-        
-        if (isHost) {
-            // Logic Bắt đầu
-            const players = Object.values(data.players);
-            if (players.length < 4) return alert("Cần ít nhất 4 người!");
-            if (!players.every(p => p.ready)) return alert("Còn người chưa sẵn sàng!");
-            if (!players.some(p => p.role === "Màn Hình Chính") || !players.some(p => p.role === "Ngân Hàng")) 
-                return alert("Thiếu vai trò quan trọng!");
-            
-            db.ref(`rooms/${roomId}`).update({ status: 'playing' });
-            window.location.href = "game.html";
-        } else {
-            // Logic Sẵn sàng
-            const myRef = db.ref(`rooms/${roomId}/players/${auth.currentUser.uid}`);
-            const readySnap = await myRef.once('value');
-            myRef.update({ ready: !readySnap.val().ready });
-        }
-    }
-
-    function leaveRoom() {
-        db.ref(`rooms/${roomId}/players/${auth.currentUser.uid}`).remove();
-        window.location.href = "index.html";
-    }
-</script>
+    </script>
 </body>
 </html>
