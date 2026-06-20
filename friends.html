@@ -508,7 +508,8 @@
     const friendCountText = document.getElementById("friendCountText");
     const requestCountText = document.getElementById("requestCountText");
     const friendsGrid = document.getElementById("friendsGrid");
-    const requestsGrid = document.getElementById("requestsGrid");
+    const searchGrid = document.getElementById("searchGrid");
+    const searchResultCount = document.getElementById("searchResultCount");
 
     let currentUser = null;
     let allFriends = [];
@@ -737,10 +738,10 @@
     window.acceptRequest = acceptRequest;
     window.declineRequest = declineRequest;
 
-    searchBtn.addEventListener("click", renderFriends);
+    searchBtn.addEventListener("click", searchPlayers);
     searchInput.addEventListener("input", renderFriends);
     searchInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") renderFriends();
+      if (e.key === "Enter") searchPlayers();
     });
 
     auth.onAuthStateChanged(async user => {
@@ -751,6 +752,152 @@
       currentUser = user;
       await refreshAll();
     });
+    async function sendFriendRequest(targetUid) {
+
+    try {
+
+        await db.ref(
+            `friendRequests/${targetUid}/${currentUser.uid}`
+        ).set(true);
+
+        alert("Đã gửi lời mời kết bạn!");
+
+    }
+    catch(err) {
+
+        console.error(err);
+
+        alert("Không thể gửi lời mời!");
+
+    }
+
+}
+
+window.sendFriendRequest = sendFriendRequest;
+    async function searchPlayers() {
+
+    const keyword = searchInput.value.trim().toLowerCase();
+
+    if (!keyword) {
+        searchGrid.innerHTML = "";
+        searchResultCount.innerText = "0 kết quả";
+        return;
+    }
+
+    searchGrid.innerHTML =
+        '<div class="loading">Đang tìm người chơi...</div>';
+
+    try {
+
+        const snap = await db.ref("users").once("value");
+
+        const users = snap.val() || {};
+
+        const results = [];
+
+        Object.keys(users).forEach(uid => {
+
+            if (uid === currentUser.uid) return;
+
+            const user = users[uid];
+
+            const name =
+                (user.name || "")
+                .toLowerCase();
+
+            const playerId =
+                (user.playerId || uid.substring(0,6))
+                .toLowerCase();
+
+            if (
+                name.includes(keyword) ||
+                playerId.includes(keyword)
+            ) {
+
+                results.push({
+                    uid,
+                    ...user
+                });
+
+            }
+
+        });
+
+        searchResultCount.innerText =
+            results.length + " kết quả";
+
+        if (!results.length) {
+
+            searchGrid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-emoji">🔍</div>
+                    <h2>Không tìm thấy</h2>
+                    <p>Không có người chơi phù hợp.</p>
+                </div>
+            `;
+
+            return;
+        }
+
+        searchGrid.innerHTML = results.map(user => {
+
+            const avatar =
+                user.avatarUrl
+                ? `<img src="${user.avatarUrl}">`
+                : `<span>${initials(user.name)}</span>`;
+
+            return `
+                <div class="friend-card">
+
+                    <div class="avatar-wrap">
+                        <div class="avatar">
+                            ${avatar}
+                        </div>
+                        <div class="status-dot ${statusClass(user.status)}"></div>
+                    </div>
+
+                    <div class="name">
+                        ${user.name}
+                    </div>
+
+                    <div class="id">
+                        ID:
+                        ${user.playerId || user.uid.substring(0,6)}
+                    </div>
+
+                    <div class="status-pill ${statusClass(user.status)}">
+                        ${statusText(user.status)}
+                    </div>
+
+                    <div class="req-actions">
+                        <button
+                            class="btn accept"
+                            onclick="sendFriendRequest('${user.uid}')">
+                            Kết bạn
+                        </button>
+                    </div>
+
+                </div>
+            `;
+
+        }).join("");
+
+    }
+    catch(err) {
+
+        console.error(err);
+
+        searchGrid.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-emoji">⚠️</div>
+                <h2>Lỗi</h2>
+                <p>Không thể tìm kiếm.</p>
+            </div>
+        `;
+
+    }
+
+}
   </script>
 </body>
 </html>
