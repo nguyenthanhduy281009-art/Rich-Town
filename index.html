@@ -43,9 +43,7 @@
     </header>
 
     <main>
-        <button class="play-btn" onclick="window.location.href='room.html'">
-    🎲 CHƠI NGAY
-</button>
+        <button class="play-btn" onclick="createRoom()">🎲 CHƠI NGAY</button>
     </main>
 
     <footer>
@@ -110,6 +108,16 @@ auth.onAuthStateChanged(user => {
                 window.location.href = "auth.html";
             });
         }
+
+        function createRoom() {
+    const roomId = Math.random().toString(36).substring(7).toUpperCase();
+    db.ref('rooms/' + roomId).set({
+        hostId: auth.currentUser.uid,
+        status: "waiting"
+    }).then(() => {
+        window.location.href = `room.html?id=${roomId}`;
+    });
+}
     </script>
 </body>
 </html>
