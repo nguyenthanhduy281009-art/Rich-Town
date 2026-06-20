@@ -619,11 +619,6 @@
                 lastSeen: firebase.database.ServerValue.TIMESTAMP
             });
 
-            userRef.update({
-                status: "online",
-                lastSeen: firebase.database.ServerValue.TIMESTAMP
-            });
-
         }
 
     });
@@ -1100,6 +1095,9 @@
 
             setupPresence(user.uid);
 
+            await db.ref(`users/${currentUser.uid}`).update({
+                status: "room"
+            });
             const userSnap = await db.ref(`users/${user.uid}`).once("value");
             currentUserData = userSnap.val() || {
                 name: user.displayName || user.email || "Người chơi"
@@ -1128,9 +1126,6 @@
                 location.replace("index.html");
             }
         });
-        await db.ref(`users/${currentUser.uid}`).update({
-    status: "room"
-});
     </script>
 </body>
 </html>
