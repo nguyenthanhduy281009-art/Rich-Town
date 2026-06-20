@@ -150,7 +150,8 @@ auth.onAuthStateChanged(user => {
         window.location.href = `room.html?id=${roomId}`;
     });
 }      
-        function joinRoom() {
+
+    function joinRoom() {
 
     const roomId = document
         .getElementById("roomCode")
@@ -171,7 +172,7 @@ auth.onAuthStateChanged(user => {
 
         if (!roomSnap.exists()) {
             alert("Phòng không tồn tại!");
-            return;
+            throw new Error("ROOM_NOT_FOUND");
         }
 
         return db.ref("users/" + user.uid)
@@ -195,6 +196,14 @@ auth.onAuthStateChanged(user => {
 
         window.location.href =
             `room.html?id=${roomId}`;
+
+    })
+    .catch(err => {
+
+        if (err.message !== "ROOM_NOT_FOUND") {
+            console.error(err);
+            alert("Có lỗi xảy ra!");
+        }
 
     });
 
