@@ -43,7 +43,38 @@
     </header>
 
     <main>
-        <button class="play-btn" onclick="createRoom()">🎲 CHƠI NGAY</button>
+        <main>
+    <button class="play-btn" onclick="createRoom()">🎲 CHƠI NGAY</button>
+
+    <div style="margin-top:20px; display:flex; gap:10px;">
+        <input
+            type="text"
+            id="roomCode"
+            placeholder="Nhập mã phòng..."
+            style="
+                padding:12px;
+                border-radius:10px;
+                border:none;
+                width:220px;
+                text-transform:uppercase;
+            "
+        >
+        <button
+            onclick="joinRoom()"
+            style="
+                padding:12px 20px;
+                border:none;
+                border-radius:10px;
+                background:#4CAF50;
+                color:white;
+                cursor:pointer;
+                font-weight:bold;
+            "
+        >
+            VÀO PHÒNG
+        </button>
+    </div>
+</main>
     </main>
 
     <footer>
