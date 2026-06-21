@@ -187,6 +187,29 @@
             font-weight:800;
         }
 
+        .player-slot {
+    position: relative;
+}
+
+.kick-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ff4d4d;
+    color: white;
+    border: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    z-index: 10;
+}
+
         .avatar{
             width:44px;
             height:44px;
@@ -684,42 +707,48 @@
     const players = room.players || {};
     const entries = getPlayerEntries(players);
     const hostId = room.hostId || "";
+    const isHostMe = currentUser.uid === hostId;
 
     el.playerCount.textContent = `${entries.length}/8`;
     el.hostName.textContent =
-      entries.find(([uid]) => uid === hostId)?.[1]?.name || "Chưa xác định";
+        entries.find(([uid]) => uid === hostId)?.[1]?.name || "Chưa xác định";
 
     const slots = [];
 
     for (let i = 0; i < 8; i++) {
-      const item = entries[i];
+        const item = entries[i];
 
-      if (!item) {
-        slots.push(`
+        if (!item) {
+            slots.push(`
           <div class="player-slot empty">
             +
             <div class="sub">Ô trống</div>
           </div>
         `);
-        continue;
-      }
+            continue;
+        }
 
-      const [uid, player] = item;
-      const isMe = uid === currentUser?.uid;
-      const isHost = uid === hostId;
-      const ready = !!player.ready;
+        const [uid, player] = item;
+        const isMe = uid === currentUser?.uid;
+        const isHost = uid === hostId;
+        const ready = !!player.ready;
 
-      const classes = ["player-slot", "slot"];
-      if (isMe) classes.push("me");
-      if (isHost) classes.push("host");
-      if (ready) classes.push("ready");
+        const classes = ["player-slot", "slot"];
+        if (isMe) classes.push("me");
+        if (isHost) classes.push("host");
+        if (ready) classes.push("ready");
 
-      const badges = [];
-      if (isHost) badges.push(`<div class="badge host">👑 Host</div>`);
-      if (ready) badges.push(`<div class="badge ready" style="${isHost ? "top:42px;" : ""}">✓ Sẵn sàng</div>`);
+        const badges = [];
+        if (isHost) badges.push(`<div class="badge host">👑 Host</div>`);
+        if (ready) badges.push(`<div class="badge ready" style="${isHost ? "top:42px;" : ""}">✓ Sẵn sàng</div>`);
 
-      slots.push(`
+        const kickBtn = (isHostMe && !isMe)
+            ? `<button class="kick-btn" onclick="kickPlayer('${uid}')">×</button>`
+            : "";
+
+        slots.push(`
         <div class="${classes.join(" ")}">
+          ${kickBtn}
           ${badges.join("")}
           <div class="avatar">${escapeHtml(initials(player.name))}</div>
           <div class="name">${escapeHtml(player.name || "Người chơi")}</div>
@@ -729,7 +758,7 @@
     }
 
     el.playersGrid.innerHTML = slots.join("");
-  }
+}
 
   function renderRoles(room) {
     const players = room.players || {};
@@ -895,7 +924,7 @@
             .map(([uid, u]) => {
                 // ... trong hàm loadFriends, bên trong .map(([uid, u]) => {
     const diff = Date.now() - (u?.lastSeen || 0);
-    const isOnline = diff < 12000; // Ngưỡng 12 giây
+    const isOnline = diff < 30000; // Ngưỡng 12 giây
 
     return {
         uid,
@@ -1215,6 +1244,22 @@
     location.replace("index.html");
   }
 });
+        window.kickPlayer = async function(uid) {
+    if (!confirm("Bạn có chắc chắn muốn mời người này ra khỏi phòng?")) return;
+    
+    try {
+        // Xóa player khỏi danh sách phòng trong DB
+        await db.ref(`rooms/${roomId}/players/${uid}`).remove();
+        
+        // Đưa trạng thái user về online (nếu cần)
+        await db.ref(`users/${uid}/status`).set("online");
+        
+        setNotice("Đã kick người chơi.");
+    } catch (e) {
+        console.error(e);
+        alert("Không thể kick người chơi.");
+    }
+};
 </script>
 </body>
 </html>
