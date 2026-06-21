@@ -851,7 +851,12 @@ window.friendRenderTimer = setTimeout(() => {
             name: u.name || data[uid]?.name || "Người chơi",
             playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
             avatarUrl: u.avatar || u.avatarUrl || "",
-            status: u.status || "offline"
+            const online =
+    Date.now() - (u.lastSeen || 0) < 10000;
+
+status: online
+    ? (u.status || "online")
+    : "offline"
           };
         }));
 
@@ -903,7 +908,12 @@ window.friendRenderTimer = setTimeout(() => {
             name: u.name || "Người chơi",
             playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
             avatarUrl: u.avatar || u.avatarUrl || "",
-            status: u.status || "offline",
+            const online =
+    Date.now() - (u.lastSeen || 0) < 10000;
+
+status: online
+    ? (u.status || "online")
+    : "offline"
             friend: isFriend(uid)
           });
         }
@@ -1025,7 +1035,11 @@ window.friendRenderTimer = setTimeout(() => {
     status: "online",
     lastSeen: firebase.database.ServerValue.TIMESTAMP
 });
-      setInterval(() => {
+      if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+}
+
+heartbeatInterval = setInterval(() => {
     userRef.update({
         lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
