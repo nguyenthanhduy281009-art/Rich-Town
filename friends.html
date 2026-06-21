@@ -681,23 +681,6 @@
           <div class="name">${escapeHtml(item.name || "Người chơi")}</div>
           <div class="id">ID: ${escapeHtml(item.playerId || "---")}</div>
           <div class="status-pill ${cls}">${statusText(item.status)}</div>
-          <button
-            class="btn accept"
-            onclick='inviteToRoom("${item.uid}", ${JSON.stringify(item.name || "Người chơi")})'
-            ${
-              item.status === "offline" || item.status === "playing"
-                ? "disabled"
-                : ""
-            }
-          >
-            ${
-              item.status === "playing"
-                ? "ĐANG CHƠI"
-                : item.status === "offline"
-                  ? "OFFLINE"
-                  : "MỜI VÀO PHÒNG"
-            }
-          </button>
         </div>
       `;
     }).join("");
@@ -1052,26 +1035,6 @@
     presenceConnectedRef.on("value", presenceConnectedCb);
   }
 
-  async function inviteToRoom(uid, name) {
-    if (!currentUser) return;
-
-    const roomId = prompt("Nhập mã phòng:");
-    if (!roomId) return;
-
-    try {
-      await db.ref(`invites/${uid}`).push({
-        fromUid: currentUser.uid,
-        fromName: currentProfile.name,
-        roomId: roomId.trim().toUpperCase(),
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-      });
-
-      alert(`Đã gửi lời mời cho ${name}`);
-    } catch (e) {
-      console.error(e);
-      alert("Không gửi được lời mời");
-    }
-  }
 
   function watchRoomInvites() {
     if (!currentUser) return;
