@@ -664,23 +664,25 @@
   }
 
   async function setupPresence() {
+
     if (!currentUser) return;
 
     const userRef = db.ref(`users/${currentUser.uid}`);
 
     await userRef.update({
         status: "room",
-        lastSeen: Date.now()
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
 
     setInterval(() => {
-        userRef.update({
-            status: "room",
-            lastSeen: Date.now()
-        });
-    }, 2000);
-}
 
+    userRef.update({
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+
+}, 5000);
+
+}
   function renderPlayers(room) {
     const players = room.players || {};
     const entries = getPlayerEntries(players);
@@ -893,11 +895,20 @@
 
             const list = Object.entries(users)
             .filter(([uid]) => uid !== currentUser.uid)
-            .map(([uid, u]) => ({
-                uid,
-                name: u?.name || "Người chơi",
-                status: u?.status || "offline"
-            }))
+            .map(([uid, u]) => {
+
+    const online =
+        Date.now() - (u?.lastSeen || 0) < 5000;
+
+    return {
+        uid,
+        name: u?.name || "Người chơi",
+        status: online
+            ? (u?.status || "online")
+            : "offline"
+    };
+
+})
             .slice(0, 12);
 
             if (!list.length) {
@@ -948,7 +959,21 @@
                     </div>
 
                     <button
-                        class="invite-btn"
+    class="invite-btn"
+    style="
+        opacity:${
+            item.status === 'offline' ||
+            item.status === 'playing'
+            ? '.5'
+            : '1'
+        };
+        cursor:${
+            item.status === 'offline' ||
+            item.status === 'playing'
+            ? 'not-allowed'
+            : 'pointer'
+        };
+    "
                         onclick='inviteFriend("${item.uid}", ${JSON.stringify(item.name)})'
                         ${item.status === "offline" || item.status === "playing" ? "disabled" : ""}
                     >
@@ -1147,6 +1172,18 @@
     currentUser = user;
 
     await setupPresence();
+      window.addEventListener("beforeunload", async () => {
+
+    try {
+
+        await db.ref(`users/${currentUser.uid}`).update({
+            status: "offline",
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+
+    } catch(e){}
+
+});
 
     const userSnap = await db.ref(`users/${currentUser.uid}`).once("value");
     currentUserData = userSnap.val() || {
