@@ -808,7 +808,11 @@
             allFriends[index] = friendData;
           }
 
-          renderFriends();
+          clearTimeout(window.friendRenderTimer);
+
+window.friendRenderTimer = setTimeout(() => {
+    renderFriends();
+}, 100);
         };
 
         userRef.on("value", cb);
