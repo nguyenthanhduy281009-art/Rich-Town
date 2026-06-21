@@ -964,7 +964,7 @@
         userRef.update({
           status: "online",
           lastSeen: firebase.database.ServerValue.TIMESTAMP,
-          onlineUntil: Date.now() + 3600
+          onlineUntil: Date.now() + 10000000
         });
       });
     }
