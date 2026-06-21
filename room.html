@@ -663,7 +663,7 @@
     return getExclusiveRoleOccupied(players, role, uid) ? "Đã có người chọn" : "Có thể chọn";
   }
 
-  async function setupPresence() {
+  function setupPresence() {
   if (!currentUser) return;
 
   const userRef = db.ref(`users/${currentUser.uid}`);
@@ -674,6 +674,7 @@
   });
 
   userRef.onDisconnect().update({
+    status: "offline",
     lastSeen: firebase.database.ServerValue.TIMESTAMP
   });
 
@@ -1174,10 +1175,10 @@
   await setupPresence();
 
   try {
-    await db.ref(`users/${currentUser.uid}`).update({
-      status: "offline",
-      lastSeen: firebase.database.ServerValue.TIMESTAMP
-    });
+      await db.ref(`users/${currentUser.uid}`).update({
+  status: "online",
+  lastSeen: firebase.database.ServerValue.TIMESTAMP
+});
   } catch (e) {}
 
   // 👉 LẤY USER DATA ĐÚNG CHỖ
