@@ -930,13 +930,25 @@
         }
 
         window.inviteFriend = async function(uid, name) {
-            try {
-                await navigator.clipboard.writeText(roomId);
-                alert(`Đã copy mã phòng để mời ${name}.`);
-            } catch (e) {
-                prompt(`Gửi mã này cho ${name}:`, roomId);
-            }
-        };
+
+    try {
+
+        await db.ref(`invites/${uid}`).push({
+            fromUid: currentUser.uid,
+            fromName: currentUserData.name,
+            roomId: roomId,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        alert(`Đã gửi lời mời cho ${name}`);
+
+    } catch (e) {
+
+        console.error(e);
+        alert("Không thể gửi lời mời");
+
+    }
+};
 
         window.chooseRole = async function(role) {
             if (!currentUser || !currentRoom) return;
