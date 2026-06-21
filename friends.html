@@ -790,13 +790,18 @@
         const cb = (userSnap) => {
           const u = userSnap.val() || {};
 
-          const friendData = {
-            uid,
-            name: u.name || "Người chơi",
-            playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
-            avatarUrl: u.avatar || u.avatarUrl || "",
-            status: u.status || "offline"
-          };
+         const online =
+    Date.now() - (u.lastSeen || 0) < 10000;
+
+const friendData = {
+    uid,
+    name: u.name || "Người chơi",
+    playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
+    avatarUrl: u.avatar || u.avatarUrl || "",
+    status: online
+        ? (u.status || "online")
+        : "offline"
+};
 
           const index = allFriends.findIndex(f => f.uid === uid);
           if (index === -1) {
@@ -1017,10 +1022,14 @@ window.friendRenderTimer = setTimeout(() => {
       });
 
       userRef.update({
-        status: "online",
-        lastSeen: firebase.database.ServerValue.TIMESTAMP,
-        onlineUntil: Date.now() + 3600000
-      });
+    status: "online",
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+});
+      setInterval(() => {
+    userRef.update({
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+}, 5000);
     };
 
     presenceConnectedRef.on("value", presenceConnectedCb);
