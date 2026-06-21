@@ -667,23 +667,19 @@
     if (!currentUser) return;
 
     const userRef = db.ref(`users/${currentUser.uid}`);
-    const connectedRef = db.ref(".info/connected");
 
-    connectedRef.on("value", snap => {
-      if (!snap.val()) return;
-
-      userRef.onDisconnect().update({
-        status: "offline",
-        lastSeen: firebase.database.ServerValue.TIMESTAMP
-      });
-
-      userRef.update({
+    await userRef.update({
         status: "room",
-        lastSeen: firebase.database.ServerValue.TIMESTAMP,
-        onlineUntil: Date.now() + 3600000
-      });
+        lastSeen: Date.now()
     });
-  }
+
+    setInterval(() => {
+        userRef.update({
+            status: "room",
+            lastSeen: Date.now()
+        });
+    }, 2000);
+}
 
   function renderPlayers(room) {
     const players = room.players || {};
