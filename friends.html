@@ -508,322 +508,376 @@
   </div>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCeg9m4AuIJxr6PCxYnC7WJ4hmWgJPB180",
-      authDomain: "rich-town.firebaseapp.com",
-      databaseURL: "https://rich-town-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "rich-town",
-      storageBucket: "rich-town.firebasestorage.app",
-      messagingSenderId: "404583018538",
-      appId: "1:404583018538:web:2bdeb6f2d26f7aa4221353",
-      measurementId: "G-K2S8KPCW45"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyCeg9m4AuIJxr6PCxYnC7WJ4hmWgJPB180",
+    authDomain: "rich-town.firebaseapp.com",
+    databaseURL: "https://rich-town-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "rich-town",
+    storageBucket: "rich-town.firebasestorage.app",
+    messagingSenderId: "404583018538",
+    appId: "1:404583018538:web:2bdeb6f2d26f7aa4221353",
+    measurementId: "G-K2S8KPCW45"
+  };
 
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
-    const searchInput = document.getElementById("searchInput");
-    const searchBtn = document.getElementById("searchBtn");
-    const countText = document.getElementById("countText");
-    const friendsCountChip = document.getElementById("friendsCountChip");
-    const friendCountText = document.getElementById("friendCountText");
-    const requestCountText = document.getElementById("requestCountText");
-    const friendsGrid = document.getElementById("friendsGrid");
-    const requestsGrid = document.getElementById("requestsGrid");
-    const searchGrid = document.getElementById("searchGrid");
-    const searchResultCount = document.getElementById("searchResultCount");
+  const auth = firebase.auth();
+  const db = firebase.database();
 
-    let currentUser = null;
-    let currentProfile = { name: "", playerId: "", avatarUrl: "" };
-    let allFriends = [];
-    let allRequests = [];
-    let searchTimer = null;
+  const searchInput = document.getElementById("searchInput");
+  const searchBtn = document.getElementById("searchBtn");
+  const countText = document.getElementById("countText");
+  const friendsCountChip = document.getElementById("friendsCountChip");
+  const friendCountText = document.getElementById("friendCountText");
+  const requestCountText = document.getElementById("requestCountText");
+  const friendsGrid = document.getElementById("friendsGrid");
+  const requestsGrid = document.getElementById("requestsGrid");
+  const searchGrid = document.getElementById("searchGrid");
+  const searchResultCount = document.getElementById("searchResultCount");
 
-    function initials(name) {
-      const s = String(name || "RT").trim();
-      if (!s) return "RT";
-      const parts = s.split(/\s+/).filter(Boolean);
-      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-      return s.slice(0, 2).toUpperCase();
+  let currentUser = null;
+  let currentProfile = { name: "", playerId: "", avatarUrl: "" };
+  let allFriends = [];
+  let allRequests = [];
+  let searchTimer = null;
+
+  let friendsRootRef = null;
+  let friendsRootCb = null;
+  let friendItemListeners = [];
+
+  let requestsRef = null;
+  let requestsCb = null;
+
+  let roomInvitesRef = null;
+  let roomInvitesCb = null;
+
+  let presenceConnectedRef = null;
+  let presenceConnectedCb = null;
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function initials(name) {
+    const s = String(name || "RT").trim();
+    if (!s) return "RT";
+    const parts = s.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return s.slice(0, 2).toUpperCase();
+  }
+
+  function statusText(status) {
+    switch ((status || "").toLowerCase()) {
+      case "online": return "Online";
+      case "room": return "Trong phòng";
+      case "playing": return "Đang chơi";
+      default: return "Offline";
     }
+  }
 
-    function statusText(status) {
-      switch ((status || "").toLowerCase()) {
-        case "online": return "Online";
-        case "room": return "Trong phòng";
-        case "playing": return "Đang chơi";
-        default: return "Offline";
-      }
+  function statusClass(status) {
+    switch ((status || "").toLowerCase()) {
+      case "online": return "online";
+      case "room": return "room";
+      case "playing": return "playing";
+      default: return "offline";
     }
+  }
 
-    function statusClass(status) {
-      switch ((status || "").toLowerCase()) {
-        case "online": return "online";
-        case "room": return "room";
-        case "playing": return "playing";
-        default: return "offline";
-      }
+  function isFriend(uid) {
+    return allFriends.some(f => f.uid === uid);
+  }
+
+  function cleanupFriendItemListeners() {
+    friendItemListeners.forEach(({ ref, cb }) => {
+      ref.off("value", cb);
+    });
+    friendItemListeners = [];
+  }
+
+  function cleanupFriendsRootListener() {
+    if (friendsRootRef && friendsRootCb) {
+      friendsRootRef.off("value", friendsRootCb);
     }
+    friendsRootRef = null;
+    friendsRootCb = null;
+  }
 
-    function isFriend(uid) {
-      return allFriends.some(f => f.uid === uid);
+  function cleanupRequestsListener() {
+    if (requestsRef && requestsCb) {
+      requestsRef.off("value", requestsCb);
     }
+    requestsRef = null;
+    requestsCb = null;
+  }
 
-    function renderSearchHint() {
-      searchResultCount.textContent = "0 kết quả";
-      searchGrid.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-emoji">🔍</div>
-          <h2>Tìm người chơi</h2>
-          <p>Nhập tên hoặc ID người chơi rồi bấm Tìm để hiện kết quả ngay tại đây.</p>
-        </div>
-      `;
+  function cleanupRoomInvitesListener() {
+    if (roomInvitesRef && roomInvitesCb) {
+      roomInvitesRef.off("child_added", roomInvitesCb);
     }
+    roomInvitesRef = null;
+    roomInvitesCb = null;
+  }
 
-    function renderFriends() {
-      const q = searchInput.value.trim().toLowerCase();
-      const filtered = allFriends.filter(item => {
-        const name = (item.name || "").toLowerCase();
-        const id = (item.playerId || "").toLowerCase();
-        return !q || name.includes(q) || id.includes(q);
-      });
-
-      countText.textContent = `Đang hiển thị ${filtered.length}/${allFriends.length} bạn bè`;
-      friendsCountChip.textContent = `${allFriends.length} bạn bè`;
-      friendCountText.textContent = `${allFriends.length} người`;
-
-      if (!filtered.length) {
-        friendsGrid.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-emoji">✨</div>
-            <h2>Chưa có bạn bè</h2>
-            <p>Danh sách bạn bè đang trống. Khi có người được kết bạn, họ sẽ xuất hiện ở đây với avatar, tên, ID và trạng thái.</p>
-          </div>
-        `;
-        return;
-      }
-
-      friendsGrid.innerHTML = filtered.map(item => {
-        const cls = statusClass(item.status);
-        const avatar = item.avatarUrl
-          ? `<img src="${item.avatarUrl}" alt="avatar">`
-          : `<span>${initials(item.name)}</span>`;
-
-        return `
-          <div class="friend-card">
-            <div class="avatar-wrap">
-              <div class="avatar">${avatar}</div>
-              <div class="status-dot ${cls}"></div>
-            </div>
-            <div class="name">${item.name || "Người chơi"}</div>
-            <div class="id">ID: ${item.playerId || "---"}</div>
-            <div class="status-pill ${cls}">${statusText(item.status)}</div>
-            <button
-    class="btn accept"
-    onclick="inviteToRoom('${item.uid}','${item.name}')"
-    ${
-        item.status === "offline" ||
-        item.status === "playing"
-        ? "disabled"
-        : ""
+  function cleanupPresenceListener() {
+    if (presenceConnectedRef && presenceConnectedCb) {
+      presenceConnectedRef.off("value", presenceConnectedCb);
     }
->
-    ${
-        item.status === "playing"
-        ? "ĐANG CHƠI"
-        : item.status === "offline"
-        ? "OFFLINE"
-        : "MỜI VÀO PHÒNG"
-    }
-</button>
-          </div>
-        `;
-      }).join("");
-    }
+    presenceConnectedRef = null;
+    presenceConnectedCb = null;
+  }
 
-    function renderRequests() {
-      requestCountText.textContent = `${allRequests.length} lời mời`;
+  function renderSearchHint() {
+    searchResultCount.textContent = "0 kết quả";
+    searchGrid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-emoji">🔍</div>
+        <h2>Tìm người chơi</h2>
+        <p>Nhập tên hoặc ID người chơi rồi bấm Tìm để hiện kết quả ngay tại đây.</p>
+      </div>
+    `;
+  }
 
-      if (!allRequests.length) {
-        requestsGrid.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-emoji">📩</div>
-            <h2>Chưa có lời mời</h2>
-            <p>Khi có ai gửi lời mời kết bạn, chúng sẽ hiện ở đây để bạn đồng ý hoặc từ chối.</p>
-          </div>
-        `;
-        return;
-      }
-
-      requestsGrid.innerHTML = allRequests.map(item => {
-        const avatar = item.avatarUrl
-          ? `<img src="${item.avatarUrl}" alt="avatar">`
-          : `<span>${initials(item.name)}</span>`;
-
-        return `
-          <div class="request-card">
-            <div class="avatar-wrap">
-              <div class="avatar">${avatar}</div>
-              <div class="status-dot ${statusClass(item.status)}"></div>
-            </div>
-            <div class="name">${item.name || "Người chơi"}</div>
-            <div class="id">ID: ${item.playerId || "---"}</div>
-            <div class="status-pill ${statusClass(item.status)}">${statusText(item.status)}</div>
-
-            <div class="req-actions">
-              <button class="btn accept" onclick="acceptRequest('${item.uid}')">Đồng ý</button>
-              <button class="btn decline" onclick="declineRequest('${item.uid}')">Từ chối</button>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function renderSearchResults(list, keyword) {
-      searchResultCount.textContent = `${list.length} kết quả`;
-
-      if (!keyword) {
-        renderSearchHint();
-        return;
-      }
-
-      if (!list.length) {
-        searchGrid.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-emoji">❌</div>
-            <h2>Không tìm thấy</h2>
-            <p>Không có người chơi nào khớp với từ khóa này.</p>
-          </div>
-        `;
-        return;
-      }
-
-      searchGrid.innerHTML = list.map(item => {
-        const cls = statusClass(item.status);
-        const avatar = item.avatarUrl
-          ? `<img src="${item.avatarUrl}" alt="avatar">`
-          : `<span>${initials(item.name)}</span>`;
-
-        return `
-          <div class="result-card">
-            <div class="avatar-wrap">
-              <div class="avatar">${avatar}</div>
-              <div class="status-dot ${cls}"></div>
-            </div>
-            <div class="name">${item.name || "Người chơi"}</div>
-            <div class="id">ID: ${item.playerId || "---"}</div>
-            <div class="status-pill ${cls}">${statusText(item.status)}</div>
-
-            <div class="result-actions">
-              ${
-                item.friend
-                  ? `<button class="btn disabled" disabled>Đã là bạn</button>`
-                  : item.pending
-                    ? `<button class="btn disabled" disabled>Đã gửi</button>`
-                    : `<button class="btn accept" onclick="sendFriendRequest('${item.uid}')">Kết bạn</button>`
-              }
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function loadFriends() {
-
-  if (!currentUser) return;
-
-  db.ref(`friends/${currentUser.uid}`)
-  .on("value", async (snap) => {
-
-    const data = snap.val() || {};
-    const ids = Object.keys(data);
-
-    if (!ids.length) {
-
-      allFriends = [];
-      renderFriends();
-      return;
-
-    }
-
-    allFriends = [];
-
-    ids.forEach(uid => {
-
-      db.ref(`users/${uid}`)
-      .on("value", userSnap => {
-
-        const u = userSnap.val() || {};
-
-        const friendData = {
-          uid,
-          name: u.name || "Người chơi",
-          playerId: u.playerId || u.id || uid.substring(0,6).toUpperCase(),
-          avatarUrl: u.avatar || u.avatarUrl || "",
-          status:
-(
-    u.status === "offline" &&
-    u.onlineUntil &&
-    Date.now() < u.onlineUntil
-)
-? "online"
-: (u.status || "offline")
-        };
-
-        const index =
-          allFriends.findIndex(f => f.uid === uid);
-
-        if(index === -1){
-
-          allFriends.push(friendData);
-
-        } else {
-
-          allFriends[index] = friendData;
-
-        }
-
-        renderFriends();
-
-      });
-
+  function renderFriends() {
+    const q = searchInput.value.trim().toLowerCase();
+    const filtered = allFriends.filter(item => {
+      const name = (item.name || "").toLowerCase();
+      const id = (item.playerId || "").toLowerCase();
+      return !q || name.includes(q) || id.includes(q);
     });
 
-  });
+    countText.textContent = `Đang hiển thị ${filtered.length}/${allFriends.length} bạn bè`;
+    friendsCountChip.textContent = `${allFriends.length} bạn bè`;
+    friendCountText.textContent = `${allFriends.length} người`;
 
-}
+    if (!filtered.length) {
+      friendsGrid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-emoji">✨</div>
+          <h2>Chưa có bạn bè</h2>
+          <p>Danh sách bạn bè đang trống. Khi có người được kết bạn, họ sẽ xuất hiện ở đây với avatar, tên, ID và trạng thái.</p>
+        </div>
+      `;
+      return;
+    }
 
-    async function loadRequests() {
-      if (!currentUser) return;
-      requestsGrid.innerHTML = `<div class="loading">Đang tải lời mời...</div>`;
+    friendsGrid.innerHTML = filtered.map(item => {
+      const cls = statusClass(item.status);
+      const avatar = item.avatarUrl
+        ? `<img src="${escapeHtml(item.avatarUrl)}" alt="avatar">`
+        : `<span>${escapeHtml(initials(item.name))}</span>`;
 
-      try {
-        db.ref(`friendRequests/${currentUser.uid}`).on("value", async snap => {
-          const data = snap.val() || {};
-          const ids = Object.keys(data);
+      return `
+        <div class="friend-card">
+          <div class="avatar-wrap">
+            <div class="avatar">${avatar}</div>
+            <div class="status-dot ${cls}"></div>
+          </div>
+          <div class="name">${escapeHtml(item.name || "Người chơi")}</div>
+          <div class="id">ID: ${escapeHtml(item.playerId || "---")}</div>
+          <div class="status-pill ${cls}">${statusText(item.status)}</div>
+          <button
+            class="btn accept"
+            onclick='inviteToRoom("${item.uid}", ${JSON.stringify(item.name || "Người chơi")})'
+            ${
+              item.status === "offline" || item.status === "playing"
+                ? "disabled"
+                : ""
+            }
+          >
+            ${
+              item.status === "playing"
+                ? "ĐANG CHƠI"
+                : item.status === "offline"
+                  ? "OFFLINE"
+                  : "MỜI VÀO PHÒNG"
+            }
+          </button>
+        </div>
+      `;
+    }).join("");
+  }
 
-          if (!ids.length) {
-            allRequests = [];
-            renderRequests();
-            return;
+  function renderRequests() {
+    requestCountText.textContent = `${allRequests.length} lời mời`;
+
+    if (!allRequests.length) {
+      requestsGrid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-emoji">📩</div>
+          <h2>Chưa có lời mời</h2>
+          <p>Khi có ai gửi lời mời kết bạn, chúng sẽ hiện ở đây để bạn đồng ý hoặc từ chối.</p>
+        </div>
+      `;
+      return;
+    }
+
+    requestsGrid.innerHTML = allRequests.map(item => {
+      const cls = statusClass(item.status);
+      const avatar = item.avatarUrl
+        ? `<img src="${escapeHtml(item.avatarUrl)}" alt="avatar">`
+        : `<span>${escapeHtml(initials(item.name))}</span>`;
+
+      return `
+        <div class="request-card">
+          <div class="avatar-wrap">
+            <div class="avatar">${avatar}</div>
+            <div class="status-dot ${cls}"></div>
+          </div>
+          <div class="name">${escapeHtml(item.name || "Người chơi")}</div>
+          <div class="id">ID: ${escapeHtml(item.playerId || "---")}</div>
+          <div class="status-pill ${cls}">${statusText(item.status)}</div>
+
+          <div class="req-actions">
+            <button class="btn accept" onclick="acceptRequest('${item.uid}')">Đồng ý</button>
+            <button class="btn decline" onclick="declineRequest('${item.uid}')">Từ chối</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderSearchResults(list, keyword) {
+    searchResultCount.textContent = `${list.length} kết quả`;
+
+    if (!keyword) {
+      renderSearchHint();
+      return;
+    }
+
+    if (!list.length) {
+      searchGrid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-emoji">❌</div>
+          <h2>Không tìm thấy</h2>
+          <p>Không có người chơi nào khớp với từ khóa này.</p>
+        </div>
+      `;
+      return;
+    }
+
+    searchGrid.innerHTML = list.map(item => {
+      const cls = statusClass(item.status);
+      const avatar = item.avatarUrl
+        ? `<img src="${escapeHtml(item.avatarUrl)}" alt="avatar">`
+        : `<span>${escapeHtml(initials(item.name))}</span>`;
+
+      return `
+        <div class="result-card">
+          <div class="avatar-wrap">
+            <div class="avatar">${avatar}</div>
+            <div class="status-dot ${cls}"></div>
+          </div>
+          <div class="name">${escapeHtml(item.name || "Người chơi")}</div>
+          <div class="id">ID: ${escapeHtml(item.playerId || "---")}</div>
+          <div class="status-pill ${cls}">${statusText(item.status)}</div>
+
+          <div class="result-actions">
+            ${
+              item.friend
+                ? `<button class="btn disabled" disabled>Đã là bạn</button>`
+                : item.pending
+                  ? `<button class="btn disabled" disabled>Đã gửi</button>`
+                  : `<button class="btn accept" onclick="sendFriendRequest('${item.uid}')">Kết bạn</button>`
+            }
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function loadFriends() {
+    if (!currentUser) return;
+
+    cleanupFriendsRootListener();
+    cleanupFriendItemListeners();
+
+    friendsRootRef = db.ref(`friends/${currentUser.uid}`);
+    friendsRootCb = (snap) => {
+      const data = snap.val() || {};
+      const ids = Object.keys(data);
+
+      cleanupFriendItemListeners();
+
+      if (!ids.length) {
+        allFriends = [];
+        renderFriends();
+        return;
+      }
+
+      allFriends = [];
+
+      ids.forEach(uid => {
+        const userRef = db.ref(`users/${uid}`);
+        const cb = (userSnap) => {
+          const u = userSnap.val() || {};
+
+          const friendData = {
+            uid,
+            name: u.name || "Người chơi",
+            playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
+            avatarUrl: u.avatar || u.avatarUrl || "",
+            status:
+              (u.status === "offline" && u.onlineUntil && Date.now() < u.onlineUntil)
+                ? "online"
+                : (u.status || "offline")
+          };
+
+          const index = allFriends.findIndex(f => f.uid === uid);
+          if (index === -1) {
+            allFriends.push(friendData);
+          } else {
+            allFriends[index] = friendData;
           }
 
-          const result = await Promise.all(ids.map(async uid => {
-            const userSnap = await db.ref(`users/${uid}`).once("value");
-            const u = userSnap.val() || {};
-            return {
-              uid,
-              name: u.name || data[uid]?.name || "Người chơi",
-              playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
-              avatarUrl: u.avatar || u.avatarUrl || "",
-              status: u.status || "offline"
-            };
-          }));
+          renderFriends();
+        };
 
-          allRequests = result;
+        userRef.on("value", cb);
+        friendItemListeners.push({ ref: userRef, cb });
+      });
+    };
+
+    friendsRootRef.on("value", friendsRootCb);
+  }
+
+  function loadRequests() {
+    if (!currentUser) return;
+
+    cleanupRequestsListener();
+    requestsGrid.innerHTML = `<div class="loading">Đang tải lời mời...</div>`;
+
+    requestsRef = db.ref(`friendRequests/${currentUser.uid}`);
+    requestsCb = async (snap) => {
+      try {
+        const data = snap.val() || {};
+        const ids = Object.keys(data);
+
+        if (!ids.length) {
+          allRequests = [];
           renderRequests();
-        });
+          return;
+        }
+
+        const result = await Promise.all(ids.map(async uid => {
+          const userSnap = await db.ref(`users/${uid}`).once("value");
+          const u = userSnap.val() || {};
+          return {
+            uid,
+            name: u.name || data[uid]?.name || "Người chơi",
+            playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
+            avatarUrl: u.avatar || u.avatarUrl || "",
+            status: u.status || "offline"
+          };
+        }));
+
+        allRequests = result;
+        renderRequests();
       } catch (e) {
         console.error(e);
         requestsGrid.innerHTML = `
@@ -834,257 +888,267 @@
           </div>
         `;
       }
+    };
+
+    requestsRef.on("value", requestsCb);
+  }
+
+  async function searchPlayers() {
+    if (!currentUser) return;
+
+    const keyword = searchInput.value.trim().toLowerCase();
+
+    if (!keyword) {
+      renderSearchHint();
+      return;
     }
 
-    async function searchPlayers() {
-      const keyword = searchInput.value.trim().toLowerCase();
+    searchGrid.innerHTML = `<div class="loading">Đang tìm người chơi...</div>`;
+    searchResultCount.textContent = "Đang tìm...";
 
-      if (!keyword) {
-        renderSearchHint();
+    try {
+      const snap = await db.ref("users").once("value");
+      const users = snap.val() || {};
+      const results = [];
+
+      Object.keys(users).forEach(uid => {
+        if (uid === currentUser.uid) return;
+
+        const u = users[uid] || {};
+        const name = String(u.name || "").toLowerCase();
+        const playerId = String(u.playerId || u.id || uid.substring(0, 6)).toLowerCase();
+
+        if (name.includes(keyword) || playerId.includes(keyword)) {
+          results.push({
+            uid,
+            name: u.name || "Người chơi",
+            playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
+            avatarUrl: u.avatar || u.avatarUrl || "",
+            status: u.status || "offline",
+            friend: isFriend(uid)
+          });
+        }
+      });
+
+      const withPending = await Promise.all(results.map(async item => {
+        const pendingSnap = await db.ref(`friendRequests/${item.uid}/${currentUser.uid}`).once("value");
+        return {
+          ...item,
+          pending: pendingSnap.exists()
+        };
+      }));
+
+      renderSearchResults(withPending, keyword);
+    } catch (err) {
+      console.error(err);
+      searchGrid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-emoji">⚠️</div>
+          <h2>Lỗi tìm kiếm</h2>
+          <p>Không thể tìm người chơi lúc này.</p>
+        </div>
+      `;
+      searchResultCount.textContent = "0 kết quả";
+    }
+  }
+
+  async function refreshAll() {
+    loadRequests();
+    loadFriends();
+    renderSearchHint();
+  }
+
+  async function sendFriendRequest(targetUid) {
+    if (!currentUser) return;
+
+    try {
+      if (targetUid === currentUser.uid) {
+        alert("Không thể gửi lời mời cho chính mình.");
         return;
       }
 
-      searchGrid.innerHTML = `<div class="loading">Đang tìm người chơi...</div>`;
-      searchResultCount.textContent = "Đang tìm...";
-
-      try {
-        const snap = await db.ref("users").once("value");
-        const users = snap.val() || {};
-        const results = [];
-
-        Object.keys(users).forEach(uid => {
-          if (uid === currentUser.uid) return;
-
-          const u = users[uid] || {};
-          const name = String(u.name || "").toLowerCase();
-          const playerId = String(u.playerId || u.id || uid.substring(0, 6)).toLowerCase();
-
-          if (name.includes(keyword) || playerId.includes(keyword)) {
-            results.push({
-              uid,
-              name: u.name || "Người chơi",
-              playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
-              avatarUrl: u.avatar || u.avatarUrl || "",
-              status: u.status || "offline",
-              friend: isFriend(uid)
-            });
-          }
-        });
-
-        const withPending = await Promise.all(results.map(async item => {
-          const pendingSnap = await db.ref(`friendRequests/${item.uid}/${currentUser.uid}`).once("value");
-          return {
-            ...item,
-            pending: pendingSnap.exists()
-          };
-        }));
-
-        renderSearchResults(withPending, keyword);
-      } catch (err) {
-        console.error(err);
-        searchGrid.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-emoji">⚠️</div>
-            <h2>Lỗi tìm kiếm</h2>
-            <p>Không thể tìm người chơi lúc này.</p>
-          </div>
-        `;
-        searchResultCount.textContent = "0 kết quả";
+      if (isFriend(targetUid)) {
+        alert("Người này đã là bạn của bạn rồi.");
+        return;
       }
-    }
 
-    async function refreshAll() {
-      loadRequests();
-      loadFriends();
-      renderSearchHint();
-    }
-
-    async function sendFriendRequest(targetUid) {
-      if (!currentUser) return;
-
-      try {
-        if (targetUid === currentUser.uid) {
-          alert("Không thể gửi lời mời cho chính mình.");
-          return;
-        }
-
-        if (isFriend(targetUid)) {
-          alert("Người này đã là bạn của bạn rồi.");
-          return;
-        }
-
-        const pendingSnap = await db.ref(`friendRequests/${targetUid}/${currentUser.uid}`).once("value");
-        if (pendingSnap.exists()) {
-          alert("Bạn đã gửi lời mời rồi.");
-          return;
-        }
-
-        const meSnap = await db.ref(`users/${currentUser.uid}`).once("value");
-        const me = meSnap.val() || {};
-
-        await db.ref(`friendRequests/${targetUid}/${currentUser.uid}`).set({
-          name: me.name || currentUser.displayName || "Người chơi",
-          playerId: me.playerId || me.id || currentUser.uid.substring(0, 6).toUpperCase(),
-          avatarUrl: me.avatar || me.avatarUrl || "",
-          status: "online",
-          sentAt: Date.now()
-        });
-
-        alert("Đã gửi lời mời kết bạn!");
-        if (searchInput.value.trim()) searchPlayers();
-      } catch (e) {
-        console.error(e);
-        alert("Không thể gửi lời mời!");
+      const pendingSnap = await db.ref(`friendRequests/${targetUid}/${currentUser.uid}`).once("value");
+      if (pendingSnap.exists()) {
+        alert("Bạn đã gửi lời mời rồi.");
+        return;
       }
-    }
 
-    async function acceptRequest(uid) {
-      if (!currentUser) return;
-      try {
-        const batch = {};
-        batch[`friends/${currentUser.uid}/${uid}`] = true;
-        batch[`friends/${uid}/${currentUser.uid}`] = true;
-        batch[`friendRequests/${currentUser.uid}/${uid}`] = null;
-        batch[`friendRequests/${uid}/${currentUser.uid}`] = null;
-        await db.ref().update(batch);
-        await refreshAll();
-      } catch (e) {
-        console.error(e);
-        alert("Không thể đồng ý lời mời.");
-      }
-    }
+      const meSnap = await db.ref(`users/${currentUser.uid}`).once("value");
+      const me = meSnap.val() || {};
 
-    async function declineRequest(uid) {
-      if (!currentUser) return;
-      try {
-        await db.ref(`friendRequests/${currentUser.uid}/${uid}`).remove();
-        await loadRequests();
-      } catch (e) {
-        console.error(e);
-        alert("Không thể từ chối lời mời.");
-      }
-    }
-
-    async function setupPresence() {
-      if (!currentUser) return;
-
-      const userRef = db.ref(`users/${currentUser.uid}`);
-      const connectedRef = db.ref(".info/connected");
-
-      connectedRef.on("value", snap => {
-        if (!snap.val()) return;
-
-        userRef.onDisconnect().update({
-          status: "offline",
-          lastSeen: firebase.database.ServerValue.TIMESTAMP
-        });
-
-        userRef.update({
-          status: "online",
-          lastSeen: firebase.database.ServerValue.TIMESTAMP,
-          onlineUntil: Date.now() + 3600
-        });
+      await db.ref(`friendRequests/${targetUid}/${currentUser.uid}`).set({
+        name: me.name || currentUser.displayName || "Người chơi",
+        playerId: me.playerId || me.id || currentUser.uid.substring(0, 6).toUpperCase(),
+        avatarUrl: me.avatar || me.avatarUrl || "",
+        status: "online",
+        sentAt: Date.now()
       });
-    }
 
-    window.acceptRequest = acceptRequest;
-    window.declineRequest = declineRequest;
-    window.sendFriendRequest = sendFriendRequest;
-    window.inviteToRoom = async function(uid, name) {
+      alert("Đã gửi lời mời kết bạn!");
+      if (searchInput.value.trim()) searchPlayers();
+    } catch (e) {
+      console.error(e);
+      alert("Không thể gửi lời mời!");
+    }
+  }
+
+  async function acceptRequest(uid) {
+    if (!currentUser) return;
+
+    try {
+      const batch = {};
+      batch[`friends/${currentUser.uid}/${uid}`] = true;
+      batch[`friends/${uid}/${currentUser.uid}`] = true;
+      batch[`friendRequests/${currentUser.uid}/${uid}`] = null;
+      batch[`friendRequests/${uid}/${currentUser.uid}`] = null;
+      await db.ref().update(batch);
+      await refreshAll();
+    } catch (e) {
+      console.error(e);
+      alert("Không thể đồng ý lời mời.");
+    }
+  }
+
+  async function declineRequest(uid) {
+    if (!currentUser) return;
+
+    try {
+      await db.ref(`friendRequests/${currentUser.uid}/${uid}`).remove();
+      await loadRequests();
+    } catch (e) {
+      console.error(e);
+      alert("Không thể từ chối lời mời.");
+    }
+  }
+
+  function setupPresence() {
+    if (!currentUser) return;
+
+    cleanupPresenceListener();
+
+    const userRef = db.ref(`users/${currentUser.uid}`);
+    presenceConnectedRef = db.ref(".info/connected");
+
+    presenceConnectedCb = (snap) => {
+      if (!snap.val()) return;
+
+      userRef.onDisconnect().update({
+        status: "offline",
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      userRef.update({
+        status: "online",
+        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+        onlineUntil: Date.now() + 3600000
+      });
+    };
+
+    presenceConnectedRef.on("value", presenceConnectedCb);
+  }
+
+  async function inviteToRoom(uid, name) {
+    if (!currentUser) return;
 
     const roomId = prompt("Nhập mã phòng:");
-
     if (!roomId) return;
 
     try {
+      await db.ref(`invites/${uid}`).push({
+        fromUid: currentUser.uid,
+        fromName: currentProfile.name,
+        roomId: roomId.trim().toUpperCase(),
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      });
 
-        await db.ref(`invites/${uid}`).push({
+      alert(`Đã gửi lời mời cho ${name}`);
+    } catch (e) {
+      console.error(e);
+      alert("Không gửi được lời mời");
+    }
+  }
 
-            fromUid: currentUser.uid,
-            fromName: currentProfile.name,
-            roomId: roomId.toUpperCase(),
-            createdAt: firebase.database.ServerValue.TIMESTAMP
+  function watchRoomInvites() {
+    if (!currentUser) return;
 
-        });
+    cleanupRoomInvitesListener();
 
-        alert(`Đã gửi lời mời cho ${name}`);
+    roomInvitesRef = db.ref(`invites/${currentUser.uid}`);
+    roomInvitesCb = async (snap) => {
+      const invite = snap.val();
+      if (!invite) return;
 
-    } catch(e) {
+      const accept = confirm(
+        `${invite.fromName} đã mời bạn vào phòng ${invite.roomId}\n\nBạn có muốn tham gia không?`
+      );
 
-        console.error(e);
-        alert("Không gửi được lời mời");
+      await snap.ref.remove();
 
+      if (accept && invite.roomId) {
+        window.location.href = `room.html?id=${invite.roomId}`;
+      }
+    };
+
+    roomInvitesRef.on("child_added", roomInvitesCb);
+  }
+
+  window.acceptRequest = acceptRequest;
+  window.declineRequest = declineRequest;
+  window.sendFriendRequest = sendFriendRequest;
+  window.inviteToRoom = inviteToRoom;
+
+  searchBtn.addEventListener("click", searchPlayers);
+
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      if (searchInput.value.trim()) {
+        searchPlayers();
+      } else {
+        renderSearchHint();
+      }
+    }, 350);
+  });
+
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      searchPlayers();
+    }
+  });
+
+  auth.onAuthStateChanged(async user => {
+    if (!user) {
+      cleanupFriendsRootListener();
+      cleanupFriendItemListeners();
+      cleanupRequestsListener();
+      cleanupRoomInvitesListener();
+      cleanupPresenceListener();
+
+      window.location.href = "auth.html";
+      return;
     }
 
-};
+    currentUser = user;
 
-    function watchRoomInvites() {
+    const profileSnap = await db.ref(`users/${user.uid}`).once("value");
+    const profile = profileSnap.val() || {};
 
-    db.ref(`invites/${currentUser.uid}`)
-    .on("child_added", async (snap) => {
+    currentProfile = {
+      name: profile.name || user.displayName || "Người chơi",
+      playerId: profile.playerId || profile.id || user.uid.substring(0, 6).toUpperCase(),
+      avatarUrl: profile.avatar || profile.avatarUrl || ""
+    };
 
-        const invite = snap.val();
-
-        if (!invite) return;
-
-        const accept = confirm(
-            `${invite.fromName} đã mời bạn vào phòng ${invite.roomId}\n\nBạn có muốn tham gia không?`
-        );
-
-        if (accept) {
-
-            window.location.href =
-                `room.html?id=${invite.roomId}`;
-
-        }
-
-        await snap.ref.remove();
-
-    });
-
-}
-
-    searchBtn.addEventListener("click", searchPlayers);
-
-    searchInput.addEventListener("input", () => {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        if (searchInput.value.trim()) {
-          searchPlayers();
-        } else {
-          renderSearchHint();
-        }
-      }, 350);
-    });
-
-    searchInput.addEventListener("keydown", e => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        searchPlayers();
-      }
-    });
-
-    auth.onAuthStateChanged(async user => {
-      if (!user) {
-        window.location.href = "auth.html";
-        return;
-      }
-
-      currentUser = user;
-
-      const profileSnap = await db.ref(`users/${user.uid}`).once("value");
-      const profile = profileSnap.val() || {};
-      currentProfile = {
-        name: profile.name || user.displayName || "Người chơi",
-        playerId: profile.playerId || profile.id || user.uid.substring(0, 6).toUpperCase(),
-        avatarUrl: profile.avatar || profile.avatarUrl || ""
-      };
-
-      await setupPresence();
-      await refreshAll();
-
-      watchRoomInvites();
-    });
-  </script>
+    setupPresence();
+    refreshAll();
+    watchRoomInvites();
+  });
+</script>
 </body>
 </html>
