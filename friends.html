@@ -1039,7 +1039,11 @@ status: online
     clearInterval(heartbeatInterval);
 }
 
-heartbeatInterval = setInterval(() => {
+heartbeatInterval = if (presenceInterval) {
+    clearInterval(presenceInterval);
+}
+
+presenceInterval = setInterval(() => {
     userRef.update({
         lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
