@@ -579,593 +579,568 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCeg9m4AuIJxr6PCxYnC7WJ4hmWgJPB180",
-            authDomain: "rich-town.firebaseapp.com",
-            databaseURL: "https://rich-town-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "rich-town",
-            storageBucket: "rich-town.firebasestorage.app",
-            messagingSenderId: "404583018538",
-            appId: "1:404583018538:web:2bdeb6f2d26f7aa4221353",
-            measurementId: "G-K2S8KPCW45"
-        };
+  const firebaseConfig = {
+    apiKey: "AIzaSyCeg9m4AuIJxr6PCxYnC7WJ4hmWgJPB180",
+    authDomain: "rich-town.firebaseapp.com",
+    databaseURL: "https://rich-town-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "rich-town",
+    storageBucket: "rich-town.firebasestorage.app",
+    messagingSenderId: "404583018538",
+    appId: "1:404583018538:web:2bdeb6f2d26f7aa4221353",
+    measurementId: "G-K2S8KPCW45"
+  };
 
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
-        const auth = firebase.auth();
-        const db = firebase.database();
+  const auth = firebase.auth();
+  const db = firebase.database();
 
-        const params = new URLSearchParams(location.search);
-        const roomId = (params.get("id") || "").trim().toUpperCase();
+  const params = new URLSearchParams(location.search);
+  const roomId = (params.get("id") || "").trim().toUpperCase();
+  const roomRef = roomId ? db.ref("rooms/" + roomId) : null;
 
-        const roomRef = roomId ? db.ref("rooms/" + roomId) : null;
+  let currentUser = null;
+  let currentUserData = null;
+  let currentRoom = null;
+  let friendsLoaded = false;
+  let redirectingToGame = false;
 
-        let currentUser = null;
-        let currentUserData = null;
-        let currentRoom = null;
-        let friendsLoaded = false;
+  const el = {
+    roomCode: document.getElementById("roomCode"),
+    playerCount: document.getElementById("playerCount"),
+    hostName: document.getElementById("hostName"),
+    playersGrid: document.getElementById("playersGrid"),
+    friendsList: document.getElementById("friendsList"),
+    notice: document.getElementById("notice"),
+    statusText: document.getElementById("statusText"),
+    statusPill: document.getElementById("statusPill"),
+    actionButtons: document.getElementById("actionButtons"),
+    myRoleLabel: document.getElementById("myRoleLabel"),
+    roomHint: document.getElementById("roomHint"),
+    btnMainScreen: document.getElementById("btnMainScreen"),
+    btnBank: document.getElementById("btnBank"),
+    btnPlayer: document.getElementById("btnPlayer"),
+    txtMainScreen: document.getElementById("txtMainScreen"),
+    txtBank: document.getElementById("txtBank"),
+    txtPlayer: document.getElementById("txtPlayer")
+  };
 
-        const el = {
-            roomCode: document.getElementById("roomCode"),
-            playerCount: document.getElementById("playerCount"),
-            hostName: document.getElementById("hostName"),
-            playersGrid: document.getElementById("playersGrid"),
-            friendsList: document.getElementById("friendsList"),
-            notice: document.getElementById("notice"),
-            statusText: document.getElementById("statusText"),
-            statusPill: document.getElementById("statusPill"),
-            actionButtons: document.getElementById("actionButtons"),
-            myRoleLabel: document.getElementById("myRoleLabel"),
-            roomHint: document.getElementById("roomHint"),
-            btnMainScreen: document.getElementById("btnMainScreen"),
-            btnBank: document.getElementById("btnBank"),
-            btnPlayer: document.getElementById("btnPlayer"),
-            txtMainScreen: document.getElementById("txtMainScreen"),
-            txtBank: document.getElementById("txtBank"),
-            txtPlayer: document.getElementById("txtPlayer")
-        };
+  function setNotice(msg) {
+    el.notice.textContent = msg;
+  }
 
-        function setNotice(msg) {
-            el.notice.textContent = msg;
-        }
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
-        async function setupPresence() {
+  function initials(name) {
+    const clean = String(name || "RT").trim();
+    if (!clean) return "RT";
+    const parts = clean.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return clean.slice(0, 2).toUpperCase();
+  }
 
+  function getPlayerEntries(players) {
+    return Object.entries(players || {}).sort((a, b) => {
+      return (a[1].joinedAt || 0) - (b[1].joinedAt || 0);
+    });
+  }
+
+  function getExclusiveRoleOccupied(players, role, ignoreUid) {
+    return getPlayerEntries(players).some(([uid, p]) => uid !== ignoreUid && p.role === role);
+  }
+
+  function getRoleStatusText(players, role, uid) {
+    const mine = players?.[uid]?.role === role;
+    if (mine) return "Đã chọn";
+    if (role === "player") return "Luôn sẵn sàng";
+    return getExclusiveRoleOccupied(players, role, uid) ? "Đã có người chọn" : "Có thể chọn";
+  }
+
+  async function setupPresence() {
     if (!currentUser) return;
 
     const userRef = db.ref(`users/${currentUser.uid}`);
     const connectedRef = db.ref(".info/connected");
 
-    connectedRef.on("value", (snap) => {
+    connectedRef.on("value", snap => {
+      if (!snap.val()) return;
 
-        if (snap.val() === true) {
+      userRef.onDisconnect().update({
+        status: "offline",
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
+      });
 
-            userRef.onDisconnect().update({
-                status: "offline",
-                lastSeen: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            userRef.update({
-                status: "room",
-                lastSeen: firebase.database.ServerValue.TIMESTAMP
-            });
-
-        }
-
+      userRef.update({
+        status: "room",
+        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+        onlineUntil: Date.now() + 3600000
+      });
     });
+  }
 
-}
-        
-        function escapeHtml(str) {
-            return String(str || "")
-                .replaceAll("&", "&amp;")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll('"', "&quot;")
-                .replaceAll("'", "&#39;");
-        }
+  function renderPlayers(room) {
+    const players = room.players || {};
+    const entries = getPlayerEntries(players);
+    const hostId = room.hostId || "";
 
-        function initials(name) {
-            const clean = String(name || "RT").trim();
-            if (!clean) return "RT";
-            const parts = clean.split(/\s+/).filter(Boolean);
-            if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-            return clean.slice(0, 2).toUpperCase();
-        }
+    el.playerCount.textContent = `${entries.length}/8`;
+    el.hostName.textContent =
+      entries.find(([uid]) => uid === hostId)?.[1]?.name || "Chưa xác định";
 
-        function getPlayerEntries(players) {
-            return Object.entries(players || {}).sort((a, b) => {
-                const aa = a[1].joinedAt || 0;
-                const bb = b[1].joinedAt || 0;
-                return aa - bb;
-            });
-        }
+    const slots = [];
 
-        function getExclusiveRoleOccupied(players, role, ignoreUid) {
-            return getPlayerEntries(players).some(([uid, p]) => uid !== ignoreUid && p.role === role);
-        }
+    for (let i = 0; i < 8; i++) {
+      const item = entries[i];
 
-        function getRoleStatusText(players, role, uid) {
-            const mine = players?.[uid]?.role === role;
-            if (mine) return "Đã chọn";
-            if (role === "player") return "Luôn sẵn sàng";
-            return getExclusiveRoleOccupied(players, role, uid) ? "Đã có người chọn" : "Có thể chọn";
-        }
+      if (!item) {
+        slots.push(`
+          <div class="player-slot empty">
+            +
+            <div class="sub">Ô trống</div>
+          </div>
+        `);
+        continue;
+      }
 
-        function renderPlayers(room) {
-            const players = room.players || {};
-            const entries = getPlayerEntries(players);
-            const hostId = room.hostId || "";
+      const [uid, player] = item;
+      const isMe = uid === currentUser?.uid;
+      const isHost = uid === hostId;
+      const ready = !!player.ready;
 
-            el.playerCount.textContent = `${entries.length}/8`;
-            el.hostName.textContent = entries.find(([uid]) => uid === hostId)?.[1]?.name || "Chưa xác định";
+      const classes = ["player-slot", "slot"];
+      if (isMe) classes.push("me");
+      if (isHost) classes.push("host");
+      if (ready) classes.push("ready");
 
-            const slots = [];
-            for (let i = 0; i < 8; i++) {
-                const item = entries[i];
-                if (!item) {
-                    slots.push(`
-                        <div class="player-slot empty">
-                            +
-                            <div class="sub">Ô trống</div>
-                        </div>
-                    `);
-                    continue;
-                }
+      const badges = [];
+      if (isHost) badges.push(`<div class="badge host">👑 Host</div>`);
+      if (ready) badges.push(`<div class="badge ready" style="${isHost ? "top:42px;" : ""}">✓ Sẵn sàng</div>`);
 
-                const [uid, player] = item;
-                const isMe = uid === currentUser?.uid;
-                const isHost = uid === hostId;
-                const ready = !!player.ready;
-
-                const classes = ["player-slot", "slot"];
-                if (isMe) classes.push("me");
-                if (isHost) classes.push("host");
-                if (ready) classes.push("ready");
-
-                const badges = [];
-                if (isHost) badges.push(`<div class="badge host">👑 Host</div>`);
-                if (ready) badges.push(`<div class="badge ready" style="${isHost ? 'top:42px;' : ''}">✓ Sẵn sàng</div>`);
-
-                slots.push(`
-                    <div class="${classes.join(" ")}">
-                        ${badges.join("")}
-                        <div class="avatar">${escapeHtml(initials(player.name))}</div>
-                        <div class="name">${escapeHtml(player.name || "Người chơi")}</div>
-                        <div class="sub">${isMe ? "Bạn" : "Trong phòng"}</div>
-                    </div>
-                `);
-            }
-
-            el.playersGrid.innerHTML = slots.join("");
-        }
-
-        function renderRoles(room) {
-            const players = room.players || {};
-            const myUid = currentUser?.uid;
-            const myRole = players?.[myUid]?.role || "player";
-
-            const mainTaken = getExclusiveRoleOccupied(players, "mainScreen", myUid);
-            const bankTaken = getExclusiveRoleOccupied(players, "bank", myUid);
-
-            const mainMine = myRole === "mainScreen";
-            const bankMine = myRole === "bank";
-            const playerMine = myRole === "player";
-
-            el.txtMainScreen.textContent = getRoleStatusText(players, "mainScreen", myUid);
-            el.txtBank.textContent = getRoleStatusText(players, "bank", myUid);
-            el.txtPlayer.textContent = getRoleStatusText(players, "player", myUid);
-
-            el.btnMainScreen.classList.toggle("taken", mainTaken && !mainMine);
-            el.btnBank.classList.toggle("taken", bankTaken && !bankMine);
-            el.btnPlayer.classList.toggle("taken", false);
-
-            el.btnMainScreen.classList.toggle("active", mainMine);
-            el.btnBank.classList.toggle("active", bankMine);
-            el.btnPlayer.classList.toggle("active", playerMine);
-
-            el.btnMainScreen.disabled = mainTaken && !mainMine;
-            el.btnBank.disabled = bankTaken && !bankMine;
-            el.btnPlayer.disabled = false;
-
-            el.myRoleLabel.textContent = mainMine
-                ? "Vai trò của bạn: Màn Hình Chính"
-                : bankMine
-                    ? "Vai trò của bạn: Ngân Hàng"
-                    : "Vai trò của bạn: Người Chơi";
-        }
-
-        function renderActions(room) {
-            const players = room.players || {};
-            const myUid = currentUser?.uid;
-            const isHost = room.hostId === myUid;
-            const me = players?.[myUid];
-            const isReady = !!me?.ready;
-
-            el.actionButtons.innerHTML = "";
-
-            if (isHost) {
-                const leaveBtn = document.createElement("button");
-                leaveBtn.className = "action-btn exit";
-                leaveBtn.textContent = "THOÁT";
-                leaveBtn.onclick = leaveRoom;
-
-                const startBtn = document.createElement("button");
-                startBtn.className = "action-btn start";
-                startBtn.textContent = "BẮT ĐẦU";
-                startBtn.onclick = startGame;
-
-                el.actionButtons.appendChild(leaveBtn);
-                el.actionButtons.appendChild(startBtn);
-                el.roomHint.textContent = "Bạn là chủ phòng. Chỉ bạn mới được bấm Bắt đầu.";
-            } else {
-                const leaveBtn = document.createElement("button");
-                leaveBtn.className = "action-btn exit";
-                leaveBtn.textContent = "THOÁT";
-                leaveBtn.onclick = leaveRoom;
-
-                const readyBtn = document.createElement("button");
-                readyBtn.className = "action-btn " + (isReady ? "done" : "ready");
-                readyBtn.textContent = isReady ? "✓ ĐÃ SẴN SÀNG" : "SẴN SÀNG";
-                readyBtn.onclick = toggleReady;
-
-                el.actionButtons.appendChild(leaveBtn);
-                el.actionButtons.appendChild(readyBtn);
-                el.roomHint.textContent = "Hãy chọn vai trò rồi bấm Sẵn sàng.";
-            }
-        }
-
-        function renderRoom(room) {
-            currentRoom = room;
-
-            el.roomCode.textContent = room.roomId || roomId || "---";
-            el.statusText.textContent = room.status || "waiting";
-
-            if (room.status === "playing") {
-                el.statusPill.textContent = "ĐANG CHƠI";
-                el.statusPill.className = "status-pill ok";
-            } else {
-                el.statusPill.textContent = "ĐANG CHỜ";
-                el.statusPill.className = "status-pill warn";
-            }
-
-            renderPlayers(room);
-            renderRoles(room);
-            renderActions(room);
-            setNotice(room.status === "playing" ? "Phòng đã bắt đầu, đang chuyển vào game..." : "Phòng đang chờ người chơi.");
-        }
-
-        async function ensureJoinedRoom() {
-            if (!roomRef) {
-                alert("Thiếu mã phòng.");
-                location.replace("index.html");
-                return;
-            }
-
-            const roomSnap = await roomRef.once("value");
-            if (!roomSnap.exists()) {
-                alert("Phòng không tồn tại!");
-                location.replace("index.html");
-                return;
-            }
-
-            const room = roomSnap.val() || {};
-            const players = room.players || {};
-            const count = Object.keys(players).length;
-
-            if (room.status === "playing") {
-                alert("Phòng đã bắt đầu!");
-                location.replace("game.html?id=" + roomId);
-                return;
-            }
-
-            if (!players[currentUser.uid]) {
-                if (count >= 8) {
-                    alert("Phòng đã đầy!");
-                    location.replace("index.html");
-                    return;
-                }
-
-                const name = currentUserData?.name || currentUser.displayName || currentUser.email || "Người chơi";
-                await roomRef.child(`players/${currentUser.uid}`).set({
-                    name: name,
-                    ready: false,
-                    role: "player",
-                    joinedAt: firebase.database.ServerValue.TIMESTAMP
-                });
-            }
-        }
-
-        function watchRoom() {
-            roomRef.on("value", snap => {
-                if (!snap.exists()) {
-                    alert("Phòng đã bị xóa!");
-                    location.replace("index.html");
-                    return;
-                }
-
-                const room = snap.val() || {};
-
-                if (room.status === "playing") {
-                    renderRoom(room);
-                    setTimeout(() => {
-                        location.replace("game.html?id=" + roomId);
-                    }, 400);
-                    return;
-                }
-
-                renderRoom(room);
-            });
-        }
-
-        async function loadFriends() {
-            try {
-                const snap = await db.ref("users").once("value");
-                const users = snap.val() || {};
-                const list = Object.entries(users)
-                    .filter(([uid]) => uid !== currentUser.uid)
-                    .map(([uid, u]) => ({
-    uid,
-    name: u?.name || "Người chơi",
-    status: u?.status || "offline"
-}))
-                    .slice(0, 12);
-
-                if (!list.length) {
-                    el.friendsList.innerHTML = `<div class="loading">Chưa có ai khác trong hệ thống.</div>`;
-                    return;
-                }
-
-                el.friendsList.innerHTML = list.map(item => `
-                    <div class="friend-item">
-                        <div class="friend-left">
-                            <div class="friend-avatar">${escapeHtml(initials(item.name))}</div>
-                            <div class="friend-meta">
-                                <div class="friend-name">${escapeHtml(item.name)}</div>
-                                <div class="friend-sub">
-    ${
-        item.status === "online"
-            ? "🟢 Online"
-            : item.status === "room"
-            ? "🏠 Trong phòng"
-            : item.status === "playing"
-            ? "🎮 Đang chơi"
-            : "⚫ Offline"
+      slots.push(`
+        <div class="${classes.join(" ")}">
+          ${badges.join("")}
+          <div class="avatar">${escapeHtml(initials(player.name))}</div>
+          <div class="name">${escapeHtml(player.name || "Người chơi")}</div>
+          <div class="sub">${isMe ? "Bạn" : "Trong phòng"}</div>
+        </div>
+      `);
     }
-</div>
-                            </div>
-                        </div>
-                        <button
-    class="invite-btn"
-    onclick="inviteFriend('${item.uid}', '${escapeHtml(item.name)}')"
-    ${
-        item.status === "offline" ||
-        item.status === "playing"
-            ? "disabled"
-            : ""
-    }>
-    ${
-        item.status === "playing"
-            ? "ĐANG CHƠI"
-            : item.status === "offline"
-            ? "OFFLINE"
-            : "MỜI"
-    }
-</button>
-                    </div>
-                `).join("");
-            } catch (e) {
-                el.friendsList.innerHTML = `<div class="loading">Không tải được danh sách bạn bè.</div>`;
-            }
-        }
 
-        window.inviteFriend = async function(uid, name) {
+    el.playersGrid.innerHTML = slots.join("");
+  }
+
+  function renderRoles(room) {
+    const players = room.players || {};
+    const myUid = currentUser?.uid;
+    const myRole = players?.[myUid]?.role || "player";
+
+    const mainTaken = getExclusiveRoleOccupied(players, "mainScreen", myUid);
+    const bankTaken = getExclusiveRoleOccupied(players, "bank", myUid);
+
+    const mainMine = myRole === "mainScreen";
+    const bankMine = myRole === "bank";
+    const playerMine = myRole === "player";
+
+    el.txtMainScreen.textContent = getRoleStatusText(players, "mainScreen", myUid);
+    el.txtBank.textContent = getRoleStatusText(players, "bank", myUid);
+    el.txtPlayer.textContent = getRoleStatusText(players, "player", myUid);
+
+    el.btnMainScreen.classList.toggle("taken", mainTaken && !mainMine);
+    el.btnBank.classList.toggle("taken", bankTaken && !bankMine);
+    el.btnPlayer.classList.toggle("taken", false);
+
+    el.btnMainScreen.classList.toggle("active", mainMine);
+    el.btnBank.classList.toggle("active", bankMine);
+    el.btnPlayer.classList.toggle("active", playerMine);
+
+    el.btnMainScreen.disabled = mainTaken && !mainMine;
+    el.btnBank.disabled = bankTaken && !bankMine;
+    el.btnPlayer.disabled = false;
+
+    el.myRoleLabel.textContent = mainMine
+      ? "Vai trò của bạn: Màn Hình Chính"
+      : bankMine
+        ? "Vai trò của bạn: Ngân Hàng"
+        : "Vai trò của bạn: Người Chơi";
+  }
+
+  function renderActions(room) {
+    const players = room.players || {};
+    const myUid = currentUser?.uid;
+    const isHost = room.hostId === myUid;
+    const me = players?.[myUid];
+    const isReady = !!me?.ready;
+
+    el.actionButtons.innerHTML = "";
+
+    const leaveBtn = document.createElement("button");
+    leaveBtn.className = "action-btn exit";
+    leaveBtn.textContent = "THOÁT";
+    leaveBtn.onclick = leaveRoom;
+
+    if (isHost) {
+      const startBtn = document.createElement("button");
+      startBtn.className = "action-btn start";
+      startBtn.textContent = "BẮT ĐẦU";
+      startBtn.onclick = startGame;
+
+      el.actionButtons.appendChild(leaveBtn);
+      el.actionButtons.appendChild(startBtn);
+      el.roomHint.textContent = "Bạn là chủ phòng. Chỉ bạn mới được bấm Bắt đầu.";
+    } else {
+      const readyBtn = document.createElement("button");
+      readyBtn.className = "action-btn " + (isReady ? "done" : "ready");
+      readyBtn.textContent = isReady ? "✓ ĐÃ SẴN SÀNG" : "SẴN SÀNG";
+      readyBtn.onclick = toggleReady;
+
+      el.actionButtons.appendChild(leaveBtn);
+      el.actionButtons.appendChild(readyBtn);
+      el.roomHint.textContent = "Hãy chọn vai trò rồi bấm Sẵn sàng.";
+    }
+  }
+
+  function renderRoom(room) {
+    currentRoom = room;
+
+    el.roomCode.textContent = room.roomId || roomId || "---";
+    el.statusText.textContent = room.status || "waiting";
+
+    if (room.status === "playing") {
+      el.statusPill.textContent = "ĐANG CHƠI";
+      el.statusPill.className = "status-pill ok";
+    } else {
+      el.statusPill.textContent = "ĐANG CHỜ";
+      el.statusPill.className = "status-pill warn";
+    }
+
+    renderPlayers(room);
+    renderRoles(room);
+    renderActions(room);
+    setNotice(room.status === "playing" ? "Phòng đã bắt đầu, đang chuyển vào game..." : "Phòng đang chờ người chơi.");
+  }
+
+  async function ensureJoinedRoom() {
+    if (!roomRef) {
+      alert("Thiếu mã phòng.");
+      location.replace("index.html");
+      return;
+    }
+
+    const roomSnap = await roomRef.once("value");
+    if (!roomSnap.exists()) {
+      alert("Phòng không tồn tại!");
+      location.replace("index.html");
+      return;
+    }
+
+    const room = roomSnap.val() || {};
+    const players = room.players || {};
+    const count = Object.keys(players).length;
+
+    if (room.status === "playing") {
+      alert("Phòng đã bắt đầu!");
+      location.replace("game.html?id=" + roomId);
+      return;
+    }
+
+    if (!players[currentUser.uid]) {
+      if (count >= 8) {
+        alert("Phòng đã đầy!");
+        location.replace("index.html");
+        return;
+      }
+
+      const name = currentUserData?.name || currentUser.displayName || currentUser.email || "Người chơi";
+      await roomRef.child(`players/${currentUser.uid}`).set({
+        name,
+        ready: false,
+        role: "player",
+        joinedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
+  }
+
+  function watchRoom() {
+    roomRef.on("value", snap => {
+      if (!snap.exists()) {
+        alert("Phòng đã bị xóa!");
+        location.replace("index.html");
+        return;
+      }
+
+      const room = snap.val() || {};
+      renderRoom(room);
+
+      if (room.status === "playing" && !redirectingToGame) {
+        redirectingToGame = true;
+        setTimeout(() => {
+          location.replace("game.html?id=" + roomId);
+        }, 300);
+      }
+    });
+  }
+
+  async function loadFriends() {
+    try {
+      const snap = await db.ref("users").once("value");
+      const users = snap.val() || {};
+      const list = Object.entries(users)
+        .filter(([uid]) => uid !== currentUser.uid)
+        .map(([uid, u]) => ({
+          uid,
+          name: u?.name || "Người chơi",
+          status: u?.status || "offline"
+        }))
+        .slice(0, 12);
+
+      if (!list.length) {
+        el.friendsList.innerHTML = `<div class="loading">Chưa có ai khác trong hệ thống.</div>`;
+        return;
+      }
+
+      el.friendsList.innerHTML = list.map(item => `
+        <div class="friend-item">
+          <div class="friend-left">
+            <div class="friend-avatar">${escapeHtml(initials(item.name))}</div>
+            <div class="friend-meta">
+              <div class="friend-name">${escapeHtml(item.name)}</div>
+              <div class="friend-sub">
+                ${
+                  item.status === "online"
+                    ? "🟢 Online"
+                    : item.status === "room"
+                      ? "🏠 Trong phòng"
+                      : item.status === "playing"
+                        ? "🎮 Đang chơi"
+                        : "⚫ Offline"
+                }
+              </div>
+            </div>
+          </div>
+          <button
+            class="invite-btn"
+            onclick='inviteFriend("${item.uid}", ${JSON.stringify(item.name)})'
+            ${item.status === "offline" || item.status === "playing" ? "disabled" : ""}
+          >
+            ${
+              item.status === "playing"
+                ? "ĐANG CHƠI"
+                : item.status === "offline"
+                  ? "OFFLINE"
+                  : "MỜI"
+            }
+          </button>
+        </div>
+      `).join("");
+    } catch (e) {
+      console.error(e);
+      el.friendsList.innerHTML = `<div class="loading">Không tải được danh sách bạn bè.</div>`;
+    }
+  }
+
+  window.inviteFriend = async function(uid, name) {
+    try {
+      await db.ref(`invites/${uid}`).push({
+        fromUid: currentUser.uid,
+        fromName: currentUserData?.name || currentUser.displayName || "Người chơi",
+        roomId,
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      alert(`Đã gửi lời mời cho ${name}`);
+    } catch (e) {
+      console.error(e);
+      alert("Không thể gửi lời mời");
+    }
+  };
+
+  window.chooseRole = async function(role) {
+    if (!currentUser || !currentRoom) return;
+
+    const room = currentRoom;
+    const players = room.players || {};
+    const me = players[currentUser.uid];
+
+    if (!me) {
+      alert("Bạn chưa ở trong phòng.");
+      return;
+    }
+
+    if (role === "mainScreen" || role === "bank") {
+      const occupied = getExclusiveRoleOccupied(players, role, currentUser.uid);
+      if (occupied && me.role !== role) {
+        alert("Vai trò này đã có người chọn!");
+        return;
+      }
+    }
 
     try {
-
-        await db.ref(`invites/${uid}`).push({
-            fromUid: currentUser.uid,
-            fromName: currentUserData.name,
-            roomId: roomId,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
-        });
-
-        alert(`Đã gửi lời mời cho ${name}`);
-
+      await roomRef.child(`players/${currentUser.uid}/role`).set(role);
+      setNotice("Đã cập nhật vai trò.");
     } catch (e) {
-
-        console.error(e);
-        alert("Không thể gửi lời mời");
-
+      console.error(e);
+      alert("Không thể chọn vai trò.");
     }
-};
+  };
 
-        window.chooseRole = async function(role) {
-            if (!currentUser || !currentRoom) return;
+  window.toggleReady = async function() {
+    if (!currentUser || !currentRoom) return;
 
-            const room = currentRoom;
-            const players = room.players || {};
-            const me = players[currentUser.uid];
+    const me = currentRoom.players?.[currentUser.uid];
+    if (!me) return;
 
-            if (!me) {
-                alert("Bạn chưa ở trong phòng.");
-                return;
-            }
+    const next = !me.ready;
+    try {
+      await roomRef.child(`players/${currentUser.uid}/ready`).set(next);
+      setNotice(next ? "Bạn đã sẵn sàng." : "Bạn đã bỏ sẵn sàng.");
+    } catch (e) {
+      console.error(e);
+      alert("Không thể đổi trạng thái sẵn sàng.");
+    }
+  };
 
-            if (role === "mainScreen" || role === "bank") {
-                const occupied = getExclusiveRoleOccupied(players, role, currentUser.uid);
-                if (occupied && me.role !== role) {
-                    alert("Vai trò này đã có người chọn!");
-                    return;
-                }
-            }
+  async function startGame() {
+    if (!currentRoom || currentRoom.hostId !== currentUser.uid) return;
 
-            try {
-                await roomRef.child(`players/${currentUser.uid}/role`).set(role);
-                setNotice("Đã cập nhật vai trò.");
-            } catch (e) {
-                console.error(e);
-                alert("Không thể chọn vai trò.");
-            }
-        };
+    try {
+      const roomSnap = await roomRef.once("value");
+      const room = roomSnap.val() || {};
+      const entries = getPlayerEntries(room.players || {});
+      const players = room.players || {};
 
-        window.toggleReady = async function() {
-            if (!currentUser || !currentRoom) return;
+      if (entries.length < 2) {
+        alert("Cần ít nhất 2 người trong phòng.");
+        return;
+      }
 
-            const me = currentRoom.players?.[currentUser.uid];
-            if (!me) return;
+      const hasMain = entries.some(([, p]) => p.role === "mainScreen");
+      const hasBank = entries.some(([, p]) => p.role === "bank");
+      const allReady = entries.every(([uid, p]) => {
+        if (uid === room.hostId) return true;
+        return p.ready === true;
+      });
 
-            const next = !me.ready;
-            try {
-                await roomRef.child(`players/${currentUser.uid}/ready`).set(next);
-                setNotice(next ? "Bạn đã sẵn sàng." : "Bạn đã bỏ sẵn sàng.");
-            } catch (e) {
-                console.error(e);
-                alert("Không thể đổi trạng thái sẵn sàng.");
-            }
-        };
+      if (!hasMain) {
+        alert("Cần chọn Màn Hình Chính.");
+        return;
+      }
 
-        async function startGame() {
-            if (!currentRoom || currentRoom.hostId !== currentUser.uid) return;
+      if (!hasBank) {
+        alert("Cần chọn Ngân Hàng.");
+        return;
+      }
 
-            const roomSnap = await roomRef.once("value");
-            const room = roomSnap.val() || {};
-            const entries = getPlayerEntries(room.players || {});
-            const players = room.players || {};
+      if (!allReady) {
+        alert("Có người chơi chưa sẵn sàng.");
+        return;
+      }
 
-            if (entries.length < 2) {
-                alert("Cần ít nhất 2 người trong phòng.");
-                return;
-            }
+      const updates = {};
+      Object.keys(players).forEach(uid => {
+        updates[`users/${uid}/status`] = "playing";
+      });
+      updates[`rooms/${roomId}/status`] = "playing";
 
-            const hasMain = entries.some(([, p]) => p.role === "mainScreen");
-            const hasBank = entries.some(([, p]) => p.role === "bank");
-            const allReady = entries.every(([uid, p]) => {
-                if (uid === room.hostId) return true;
-                return p.ready === true;
-            });
+      await db.ref().update(updates);
 
-            if (!hasMain) {
-                alert("Cần chọn Màn Hình Chính.");
-                return;
-            }
+      redirectingToGame = true;
+      location.replace("game.html?id=" + roomId);
+    } catch (e) {
+      console.error(e);
+      alert("Không thể bắt đầu game.");
+    }
+  }
 
-            if (!hasBank) {
-                alert("Cần chọn Ngân Hàng.");
-                return;
-            }
+  async function leaveRoom() {
+    try {
+      if (!currentUser) {
+        location.replace("index.html");
+        return;
+      }
 
-            if (!allReady) {
-                alert("Có người chơi chưa sẵn sàng.");
-                return;
-            }
-            const updates = {};
+      if (roomRef) {
+        const roomSnap = await roomRef.once("value");
+        const room = roomSnap.val();
+        const userRef = db.ref(`users/${currentUser.uid}`);
 
-            Object.keys(players).forEach(uid => {
-            updates[`users/${uid}/status`] = "playing";
-            });
+        await userRef.onDisconnect().cancel();
 
-            await db.ref().update(updates);
-            
-            await roomRef.update({
-                status: "playing"
-            });
+        if (room && room.players && room.players[currentUser.uid]) {
+          const players = room.players || {};
+          const remaining = Object.entries(players).filter(([id]) => id !== currentUser.uid);
 
-            location.replace("game.html?id=" + roomId);
+          const updates = {};
+          updates[`rooms/${roomId}/players/${currentUser.uid}`] = null;
+
+          if (remaining.length === 0) {
+            updates[`rooms/${roomId}`] = null;
+          } else if (room.hostId === currentUser.uid) {
+            updates[`rooms/${roomId}/hostId`] = remaining[0][0];
+          }
+
+          await db.ref().update(updates);
         }
 
-        async function leaveRoom() {
-
-            const userRef = db.ref(`users/${currentUser.uid}`);
-
- 
-            await userRef.onDisconnect().cancel();
-
-            // Đặt trạng thái online
-            await userRef.update({
-    status: "online",
-    lastSeen: firebase.database.ServerValue.TIMESTAMP
-});
-            
-            try {
-
-                await db.ref(`users/${currentUser.uid}`).update({
-                     status: "online",
-                     lastSeen: firebase.database.ServerValue.TIMESTAMP
-                });
-                
-                if (!currentRoom) {
-                    await db.ref(`users/${currentUser.uid}`).update({
-                        status: "online"
-                    });
-                    location.replace("index.html");
-                    return;
-                }
-
-                const room = currentRoom;
-                const uid = currentUser.uid;
-                const players = room.players || {};
-                const me = players[uid];
-
-                const updates = {};
-                updates[`rooms/${roomId}/players/${uid}`] = null;
-
-                const remaining = Object.entries(players).filter(([id]) => id !== uid);
-
-                if (remaining.length === 0) {
-                    updates[`rooms/${roomId}`] = null;
-                } else if (room.hostId === uid) {
-                    updates[`rooms/${roomId}/hostId`] = remaining[0][0];
-                }
-
-                await db.ref().update(updates);
-                location.replace("index.html");
-            } catch (e) {
-                console.error(e);
-                location.replace("index.html");
-            }
-        }
-
-        auth.onAuthStateChanged(async user => {
-            if (!user) {
-                location.replace("auth.html");
-                return;
-            }
-
-            currentUser = user;
-
-            await setupPresence();
-
-            await db.ref(`users/${currentUser.uid}`).update({
-                status: "room"
-            });
-            const userSnap = await db.ref(`users/${user.uid}`).once("value");
-            currentUserData = userSnap.val() || {
-                name: user.displayName || user.email || "Người chơi"
-            };
-
-            
-            if (!roomId) {
-                alert("Thiếu mã phòng.");
-                location.replace("index.html");
-                return;
-            }
-
-            if (!friendsLoaded) {
-                friendsLoaded = true;
-                loadFriends();
-            }
-
-            try {
-                await ensureJoinedRoom();
-                setNotice("Đã vào phòng.");
-                watchRoom();
-            } catch (e) {
-                console.error(e);
-                alert("Không thể vào phòng.");
-                location.replace("index.html");
-            }
+        await userRef.update({
+          status: "online",
+          lastSeen: firebase.database.ServerValue.TIMESTAMP
         });
-    </script>
+      }
+
+      location.replace("index.html");
+    } catch (e) {
+      console.error(e);
+      location.replace("index.html");
+    }
+  }
+
+  auth.onAuthStateChanged(async user => {
+    if (!user) {
+      location.replace("auth.html");
+      return;
+    }
+
+    currentUser = user;
+
+    await setupPresence();
+
+    const userSnap = await db.ref(`users/${currentUser.uid}`).once("value");
+    currentUserData = userSnap.val() || {
+      name: user.displayName || user.email || "Người chơi"
+    };
+
+    if (!roomId) {
+      alert("Thiếu mã phòng.");
+      location.replace("index.html");
+      return;
+    }
+
+    if (!friendsLoaded) {
+      friendsLoaded = true;
+      loadFriends();
+    }
+
+    try {
+      await db.ref(`users/${currentUser.uid}`).update({
+        status: "room"
+      });
+
+      await ensureJoinedRoom();
+      setNotice("Đã vào phòng.");
+      watchRoom();
+    } catch (e) {
+      console.error(e);
+      alert("Không thể vào phòng.");
+      location.replace("index.html");
+    }
+  });
+</script>
 </body>
 </html>
