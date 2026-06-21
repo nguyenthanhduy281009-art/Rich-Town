@@ -605,25 +605,6 @@
         let currentRoom = null;
         let friendsLoaded = false;
 
-        function setupPresence(uid) {
-
-    const userRef = db.ref(`users/${uid}`);
-    const connectedRef = db.ref(".info/connected");
-
-    connectedRef.on("value", (snap) => {
-
-        if (snap.val() === true) {
-
-            userRef.onDisconnect().update({
-                status: "offline",
-                lastSeen: firebase.database.ServerValue.TIMESTAMP
-            });
-
-        }
-
-    });
-
-}
         const el = {
             roomCode: document.getElementById("roomCode"),
             playerCount: document.getElementById("playerCount"),
@@ -1099,7 +1080,7 @@
 
             currentUser = user;
 
-            setupPresence(user.uid);
+            await setupPresence();
 
             await db.ref(`users/${currentUser.uid}`).update({
                 status: "room"
