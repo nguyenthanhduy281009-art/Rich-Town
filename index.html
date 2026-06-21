@@ -1,5 +1,268 @@
 <!DOCTYPE html>
+<html lang="vi"><!DOCTYPE html>
 <html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rich-Town | Lobby</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        :root { --gold: #FFD700; --dark: #1a1a1a; --glass: rgba(255, 255, 255, 0.05); }
+        body { font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle, #2c3e50, #000); color: white; margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Header Profile */
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--glass); backdrop-filter: blur(10px); }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .avatar { width: 50px; height: 50px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: black; font-size: 20px; }
+        .logout-btn { background: #ff4d4d; border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+
+        /* Main Content */
+        main { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .play-btn { background: linear-gradient(135deg, #FFD700, #FFA500); border: none; padding: 25px 60px; font-size: 24px; font-weight: bold; border-radius: 50px; cursor: pointer; transition: transform 0.2s, box-shadow 0.3s; color: #000; box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3); }
+        .play-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px var(--gold); }
+
+        /* Bottom Nav */
+        footer { display: flex; justify-content: center; gap: 40px; padding: 30px; }
+        .nav-item { cursor: pointer; text-align: center; transition: 0.3s; }
+        .nav-item:hover { color: var(--gold); }
+        .nav-icon { font-size: 24px; display: block; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="user-info">
+            <div class="avatar" id="avatar-char">RT</div>
+            <div>
+                <div id="username" style="font-weight: bold; font-size: 18px;">Đang tải...</div>
+                <div id="userid" style="font-size: 12px; color: #888;">ID: ---</div>
+            </div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Đăng xuất</button>
+    </header>
+
+    <main>
+        <main>
+    <button class="play-btn" onclick="createRoom()">🎲 CHƠI NGAY</button>
+
+    <div style="margin-top:20px; display:flex; gap:10px;">
+        <input
+            type="text"
+            id="roomCode"
+            placeholder="Nhập mã phòng..."
+            style="
+                padding:12px;
+                border-radius:10px;
+                border:none;
+                width:220px;
+                text-transform:uppercase;
+            "
+        >
+        <button
+            onclick="joinRoom()"
+            style="
+                padding:12px 20px;
+                border:none;
+                border-radius:10px;
+                background:#4CAF50;
+                color:white;
+                cursor:pointer;
+                font-weight:bold;
+            "
+        >
+            VÀO PHÒNG
+        </button>
+    </div>
+</main>
+    </main>
+
+    <footer>
+    <div class="nav-item" onclick="window.location.href='friends.html'">
+        <span class="nav-icon">👥</span>
+        <span>Bạn bè</span>
+    </div>
+
+    <div class="nav-item" onclick="window.location.href='shop.html'">
+        <span class="nav-icon">🛍️</span>
+        <span>Cửa hàng</span>
+    </div>
+</footer>
+
+    <script>
+        const firebaseConfig = {
+  apiKey: "AIzaSyCeg9m4AuIJxr6PCxYnC7WJ4hmWgJPB180",
+  authDomain: "rich-town.firebaseapp.com",
+  databaseURL: "https://rich-town-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rich-town",
+  storageBucket: "rich-town.firebasestorage.app",
+  messagingSenderId: "404583018538",
+  appId: "1:404583018538:web:2bdeb6f2d26f7aa4221353",
+  measurementId: "G-K2S8KPCW45"
+};
+
+        
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // 1. Kiểm tra đăng nhập
+       // Thay đoạn onAuthStateChanged cũ bằng đoạn này
+       // Đặt một biến cờ để tránh việc redirect nhầm
+
+auth.onAuthStateChanged(user => {
+
+    console.log("AUTH USER:", user);
+
+    if(user){
+
+        setupPresence(user.uid);
+
+        loadUserData(user.uid);
+
+        watchInvites(user.uid);
+
+    }else{
+
+        console.log("KHÔNG CÓ USER");
+        window.location.href = "auth.html";
+
+    }
+
+});
+        // 2. Load dữ liệu
+        function loadUserData(uid) {
+            db.ref('users/' + uid).once('value').then(snap => {
+                const data = snap.val();
+                if (data) {
+                    document.getElementById('username').innerText = data.name;
+                    document.getElementById('userid').innerText = "ID: " + uid.substring(0, 8).toUpperCase();
+                    document.getElementById('avatar-char').innerText = data.name.charAt(0).toUpperCase();
+                }
+            });
+        }
+
+        // 3. Đăng xuất
+        function logout() {
+            auth.signOut().then(() => {
+                window.location.href = "auth.html";
+            });
+        }
+
+        async function createRoom() {
+
+    const roomId = Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase();
+
+    const user = auth.currentUser;
+
+    const userSnap = await db.ref("users/" + user.uid).once("value");
+    const data = userSnap.val();
+
+    await db.ref("rooms/" + roomId).set({
+        roomId: roomId,
+        hostId: user.uid,
+        status: "waiting",
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        players: {
+            [user.uid]: {
+                name: data.name,
+                ready: false,
+                role: "player",
+                joinedAt: firebase.database.ServerValue.TIMESTAMP
+            }
+        }
+    });
+
+    window.location.href = `room.html?id=${roomId}`;
+}    
+
+        function setupPresence(uid) {
+
+    const userRef = db.ref(`users/${uid}`);
+    const connectedRef = db.ref(".info/connected");
+
+    connectedRef.on("value", snap => {
+
+        if (!snap.val()) return;
+
+        userRef.onDisconnect().update({
+            status: "offline",
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        userRef.update({
+            status: "online",
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+
+    });
+
+}
+    async function joinRoom() {
+
+    const roomId = document
+        .getElementById("roomCode")
+        .value
+        .trim()
+        .toUpperCase();
+
+    if (!roomId) {
+        alert("Nhập mã phòng!");
+        return;
+    }
+
+    const roomSnap = await db.ref("rooms/" + roomId).once("value");
+
+    if (!roomSnap.exists()) {
+        alert("Phòng không tồn tại!");
+        return;
+    }
+
+    const user = auth.currentUser;
+
+    const userSnap = await db.ref("users/" + user.uid).once("value");
+    const data = userSnap.val();
+
+    await db.ref(`rooms/${roomId}/players/${user.uid}`).set({
+    name: data.name,
+    ready: false,
+    role: "player",
+    joinedAt: firebase.database.ServerValue.TIMESTAMP
+});
+
+    window.location.href = `room.html?id=${roomId}`;
+}
+        function watchInvites(uid) {
+
+    db.ref(`invites/${uid}`).on("child_added", async (snap) => {
+
+        const invite = snap.val();
+
+        if (!invite) return;
+
+        const accept = confirm(
+            `${invite.fromName} đã mời bạn vào phòng ${invite.roomId}\n\nBạn có muốn tham gia không?`
+        );
+
+        if (accept) {
+
+            window.location.href =
+                `room.html?id=${invite.roomId}`;
+
+        }
+
+        await snap.ref.remove();
+
+    });
+
+}
+    </script>
+</body>
+</html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
