@@ -665,24 +665,20 @@
 
   function setupPresence() {
   if (!currentUser) return;
-
   const userRef = db.ref(`users/${currentUser.uid}`);
-
-  userRef.update({
-    status: "room",
-    lastSeen: firebase.database.ServerValue.TIMESTAMP
-  });
-
+  
+  // Chỉ update lastSeen, không set status offline
   userRef.onDisconnect().update({
-    status: "offline",
     lastSeen: firebase.database.ServerValue.TIMESTAMP
   });
 
+  // Update trạng thái online liên tục
   setInterval(() => {
     userRef.update({
+      status: "room",
       lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
-  }, 8000);
+  }, 5000); 
 }
   function renderPlayers(room) {
     const players = room.players || {};
@@ -899,7 +895,7 @@
             .map(([uid, u]) => {
 
     const online =
-        Date.now() - (u?.lastSeen || 0) < 5000;
+        Date.now() - (u?.lastSeen || 0) < 10000;
 
     return {
         uid,
