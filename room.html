@@ -664,24 +664,24 @@
   }
 
   async function setupPresence() {
+  if (!currentUser) return;
 
-    if (!currentUser) return;
+  const userRef = db.ref(`users/${currentUser.uid}`);
 
-    const userRef = db.ref(`users/${currentUser.uid}`);
+  userRef.update({
+    status: "room",
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+  });
 
-    await userRef.update({
-        status: "room",
-        lastSeen: firebase.database.ServerValue.TIMESTAMP
-    });
+  userRef.onDisconnect().update({
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+  });
 
-    setInterval(() => {
-
+  setInterval(() => {
     userRef.update({
-        lastSeen: firebase.database.ServerValue.TIMESTAMP
+      lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
-
-}, 5000);
-
+  }, 8000);
 }
   function renderPlayers(room) {
     const players = room.players || {};
@@ -1164,54 +1164,50 @@
   }
 
   auth.onAuthStateChanged(async user => {
-    if (!user) {
-      location.replace("auth.html");
-      return;
-    }
+  if (!user) {
+    location.replace("auth.html");
+    return;
+  }
 
-    currentUser = user;
+  currentUser = user;
 
-    await setupPresence();
-      window.addEventListener("beforeunload", async () => {
+  await setupPresence();
 
-    try {
+  try {
+    await db.ref(`users/${currentUser.uid}`).update({
+      status: "offline",
+      lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+  } catch (e) {}
 
-        await db.ref(`users/${currentUser.uid}`).update({
-            status: "offline",
-            lastSeen: firebase.database.ServerValue.TIMESTAMP
-        });
+  // 👉 LẤY USER DATA ĐÚNG CHỖ
+  const userSnap = await db.ref(`users/${currentUser.uid}`).once("value");
+  currentUserData = userSnap.val() || {
+    name: user.displayName || user.email || "Người chơi"
+  };
 
-    } catch(e){}
+  if (!roomId) {
+    alert("Thiếu mã phòng.");
+    location.replace("index.html");
+    return;
+  }
 
+  loadFriends();
+
+  try {
+    await db.ref(`users/${currentUser.uid}`).update({
+      status: "room"
+    });
+
+    await ensureJoinedRoom();
+    setNotice("Đã vào phòng.");
+    watchRoom();
+  } catch (e) {
+    console.error(e);
+    alert("Không thể vào phòng.");
+    location.replace("index.html");
+  }
 });
-
-    const userSnap = await db.ref(`users/${currentUser.uid}`).once("value");
-    currentUserData = userSnap.val() || {
-      name: user.displayName || user.email || "Người chơi"
-    };
-
-    if (!roomId) {
-      alert("Thiếu mã phòng.");
-      location.replace("index.html");
-      return;
-    }
-
-    loadFriends();
-
-    try {
-      await db.ref(`users/${currentUser.uid}`).update({
-        status: "room"
-      });
-
-      await ensureJoinedRoom();
-      setNotice("Đã vào phòng.");
-      watchRoom();
-    } catch (e) {
-      console.error(e);
-      alert("Không thể vào phòng.");
-      location.replace("index.html");
-    }
-  });
 </script>
 </body>
 </html>
