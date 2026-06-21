@@ -1033,6 +1033,18 @@
         }
 
         async function leaveRoom() {
+
+            const userRef = db.ref(`users/${currentUser.uid}`);
+
+ 
+            await userRef.onDisconnect().cancel();
+
+            // Đặt trạng thái online
+            await userRef.update({
+    status: "online",
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+});
+            
             try {
 
                 await db.ref(`users/${currentUser.uid}`).update({
