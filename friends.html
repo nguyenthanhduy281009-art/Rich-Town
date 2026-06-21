@@ -619,6 +619,24 @@
             <div class="name">${item.name || "Người chơi"}</div>
             <div class="id">ID: ${item.playerId || "---"}</div>
             <div class="status-pill ${cls}">${statusText(item.status)}</div>
+            <button
+    class="btn accept"
+    onclick="inviteToRoom('${item.uid}','${item.name}')"
+    ${
+        item.status === "offline" ||
+        item.status === "playing"
+        ? "disabled"
+        : ""
+    }
+>
+    ${
+        item.status === "playing"
+        ? "ĐANG CHƠI"
+        : item.status === "offline"
+        ? "OFFLINE"
+        : "MỜI VÀO PHÒNG"
+    }
+</button>
           </div>
         `;
       }).join("");
@@ -972,6 +990,59 @@
     window.acceptRequest = acceptRequest;
     window.declineRequest = declineRequest;
     window.sendFriendRequest = sendFriendRequest;
+    window.inviteToRoom = async function(uid, name) {
+
+    const roomId = prompt("Nhập mã phòng:");
+
+    if (!roomId) return;
+
+    try {
+
+        await db.ref(`invites/${uid}`).push({
+
+            fromUid: currentUser.uid,
+            fromName: currentProfile.name,
+            roomId: roomId.toUpperCase(),
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+
+        });
+
+        alert(`Đã gửi lời mời cho ${name}`);
+
+    } catch(e) {
+
+        console.error(e);
+        alert("Không gửi được lời mời");
+
+    }
+
+};
+
+    function watchRoomInvites() {
+
+    db.ref(`invites/${currentUser.uid}`)
+    .on("child_added", async (snap) => {
+
+        const invite = snap.val();
+
+        if (!invite) return;
+
+        const accept = confirm(
+            `${invite.fromName} đã mời bạn vào phòng ${invite.roomId}\n\nBạn có muốn tham gia không?`
+        );
+
+        if (accept) {
+
+            window.location.href =
+                `room.html?id=${invite.roomId}`;
+
+        }
+
+        await snap.ref.remove();
+
+    });
+
+}
 
     searchBtn.addEventListener("click", searchPlayers);
 
@@ -1001,13 +1072,6 @@
 
       currentUser = user;
 
-      db.ref("users")
-      .on("value", () => {
-
-         loadFriends();
-
-     });
-
       const profileSnap = await db.ref(`users/${user.uid}`).once("value");
       const profile = profileSnap.val() || {};
       currentProfile = {
@@ -1018,6 +1082,8 @@
 
       await setupPresence();
       await refreshAll();
+
+      watchRoomInvites();
     });
   </script>
 </body>
