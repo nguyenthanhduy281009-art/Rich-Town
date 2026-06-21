@@ -1026,11 +1026,7 @@ presenceInterval = setInterval(() => {
     userRef.update({
         lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
-}, 5000);
-    userRef.update({
-        lastSeen: firebase.database.ServerValue.TIMESTAMP
-    });
-}, 5000);
+}, 10000);
     };
 
     presenceConnectedRef.on("value", presenceConnectedCb);
