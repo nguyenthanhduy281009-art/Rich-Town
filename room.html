@@ -904,7 +904,11 @@
                 const users = snap.val() || {};
                 const list = Object.entries(users)
                     .filter(([uid]) => uid !== currentUser.uid)
-                    .map(([uid, u]) => ({ uid, name: u?.name || "Người chơi" }))
+                    .map(([uid, u]) => ({
+    uid,
+    name: u?.name || "Người chơi",
+    status: u?.status || "offline"
+}))
                     .slice(0, 12);
 
                 if (!list.length) {
@@ -918,10 +922,36 @@
                             <div class="friend-avatar">${escapeHtml(initials(item.name))}</div>
                             <div class="friend-meta">
                                 <div class="friend-name">${escapeHtml(item.name)}</div>
-                                <div class="friend-sub">Sẵn sàng để mời</div>
+                                <div class="friend-sub">
+    ${
+        item.status === "online"
+            ? "🟢 Online"
+            : item.status === "room"
+            ? "🏠 Trong phòng"
+            : item.status === "playing"
+            ? "🎮 Đang chơi"
+            : "⚫ Offline"
+    }
+</div>
                             </div>
                         </div>
-                        <button class="invite-btn" onclick="inviteFriend('${item.uid}', '${escapeHtml(item.name)}')">MỜI</button>
+                        <button
+    class="invite-btn"
+    onclick="inviteFriend('${item.uid}', '${escapeHtml(item.name)}')"
+    ${
+        item.status === "offline" ||
+        item.status === "playing"
+            ? "disabled"
+            : ""
+    }>
+    ${
+        item.status === "playing"
+            ? "ĐANG CHƠI"
+            : item.status === "offline"
+            ? "OFFLINE"
+            : "MỜI"
+    }
+</button>
                     </div>
                 `).join("");
             } catch (e) {
