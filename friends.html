@@ -548,8 +548,6 @@
   let requestsRef = null;
   let requestsCb = null;
 
-  let roomInvitesRef = null;
-  let roomInvitesCb = null;
 
   let presenceConnectedRef = null;
   let presenceConnectedCb = null;
@@ -614,14 +612,6 @@
     }
     requestsRef = null;
     requestsCb = null;
-  }
-
-  function cleanupRoomInvitesListener() {
-    if (roomInvitesRef && roomInvitesCb) {
-      roomInvitesRef.off("child_added", roomInvitesCb);
-    }
-    roomInvitesRef = null;
-    roomInvitesCb = null;
   }
 
   function cleanupPresenceListener() {
@@ -1036,34 +1026,10 @@
   }
 
 
-  function watchRoomInvites() {
-    if (!currentUser) return;
-
-    cleanupRoomInvitesListener();
-
-    roomInvitesRef = db.ref(`invites/${currentUser.uid}`);
-    roomInvitesCb = async (snap) => {
-      const invite = snap.val();
-      if (!invite) return;
-
-      const accept = confirm(
-        `${invite.fromName} đã mời bạn vào phòng ${invite.roomId}\n\nBạn có muốn tham gia không?`
-      );
-
-      await snap.ref.remove();
-
-      if (accept && invite.roomId) {
-        window.location.href = `room.html?id=${invite.roomId}`;
-      }
-    };
-
-    roomInvitesRef.on("child_added", roomInvitesCb);
-  }
 
   window.acceptRequest = acceptRequest;
   window.declineRequest = declineRequest;
   window.sendFriendRequest = sendFriendRequest;
-  window.inviteToRoom = inviteToRoom;
 
   searchBtn.addEventListener("click", searchPlayers);
 
@@ -1090,7 +1056,6 @@
       cleanupFriendsRootListener();
       cleanupFriendItemListeners();
       cleanupRequestsListener();
-      cleanupRoomInvitesListener();
       cleanupPresenceListener();
 
       window.location.href = "auth.html";
@@ -1110,7 +1075,6 @@
 
     setupPresence();
     refreshAll();
-    watchRoomInvites();
   });
 </script>
 </body>
