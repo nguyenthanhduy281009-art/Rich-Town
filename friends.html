@@ -540,6 +540,7 @@
   let allFriends = [];
   let allRequests = [];
   let searchTimer = null;
+  let presenceInterval = null;
 
   let friendsRootRef = null;
   let friendsRootCb = null;
@@ -585,48 +586,6 @@
       case "playing": return "playing";
       default: return "offline";
     }
-  }
-
-    function cleanupPresenceListener() {
-
-  if (presenceConnectedRef && presenceConnectedCb) {
-    presenceConnectedRef.off("value", presenceConnectedCb);
-  }
-
-  if (presenceInterval) {
-    clearInterval(presenceInterval);
-    presenceInterval = null;
-  }
-
-  presenceConnectedRef = null;
-  presenceConnectedCb = null;
-}
-
-  function isFriend(uid) {
-    return allFriends.some(f => f.uid === uid);
-  }
-
-  function cleanupFriendItemListeners() {
-    friendItemListeners.forEach(({ ref, cb }) => {
-      ref.off("value", cb);
-    });
-    friendItemListeners = [];
-  }
-
-  function cleanupFriendsRootListener() {
-    if (friendsRootRef && friendsRootCb) {
-      friendsRootRef.off("value", friendsRootCb);
-    }
-    friendsRootRef = null;
-    friendsRootCb = null;
-  }
-
-  function cleanupRequestsListener() {
-    if (requestsRef && requestsCb) {
-      requestsRef.off("value", requestsCb);
-    }
-    requestsRef = null;
-    requestsCb = null;
   }
 
   function cleanupPresenceListener() {
@@ -861,13 +820,18 @@ window.friendRenderTimer = setTimeout(() => {
         const result = await Promise.all(ids.map(async uid => {
           const userSnap = await db.ref(`users/${uid}`).once("value");
           const u = userSnap.val() || {};
-          return {
-            uid,
-            name: u.name || data[uid]?.name || "Người chơi",
-            playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
-            avatarUrl: u.avatar || u.avatarUrl || "",
-            const online =
+          const online =
     Date.now() - (u.lastSeen || 0) < 10000;
+
+return {
+    uid,
+    name: u.name || data[uid]?.name || "Người chơi",
+    playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
+    avatarUrl: u.avatar || u.avatarUrl || "",
+    status: online
+        ? (u.status || "online")
+        : "offline"
+};
 
 status: online
     ? (u.status || "online")
@@ -918,19 +882,19 @@ status: online
         const playerId = String(u.playerId || u.id || uid.substring(0, 6)).toLowerCase();
 
         if (name.includes(keyword) || playerId.includes(keyword)) {
-          results.push({
-            uid,
-            name: u.name || "Người chơi",
-            playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
-            avatarUrl: u.avatar || u.avatarUrl || "",
-            const online =
+          const online =
     Date.now() - (u.lastSeen || 0) < 10000;
 
-status: online
-    ? (u.status || "online")
-    : "offline"
-            friend: isFriend(uid)
-          });
+results.push({
+    uid,
+    name: u.name || "Người chơi",
+    playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
+    avatarUrl: u.avatar || u.avatarUrl || "",
+    status: online
+        ? (u.status || "online")
+        : "offline",
+    friend: isFriend(uid)
+});
         }
       });
 
@@ -1054,11 +1018,15 @@ status: online
     clearInterval(heartbeatInterval);
 }
 
-heartbeatInterval = if (presenceInterval) {
+if (presenceInterval) {
     clearInterval(presenceInterval);
 }
 
 presenceInterval = setInterval(() => {
+    userRef.update({
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+}, 5000);
     userRef.update({
         lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
