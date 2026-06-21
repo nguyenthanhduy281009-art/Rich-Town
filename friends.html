@@ -541,7 +541,7 @@
   let allRequests = [];
   let searchTimer = null;
   let presenceInterval = null;
-
+  let heartbeatInterval = null;
   let friendsRootRef = null;
   let friendsRootCb = null;
   let friendItemListeners = [];
@@ -562,6 +562,20 @@
       .replace(/'/g, "&#39;");
   }
 
+  function isFriend(uid) {
+  return allFriends.some(f => f.uid === uid);
+}
+
+  function cleanupFriendsRootListener() {
+  if (friendsRootRef && friendsRootCb) friendsRootRef.off("value", friendsRootCb);
+}
+function cleanupFriendItemListeners() {
+  friendItemListeners.forEach(l => l.ref.off("value", l.cb));
+  friendItemListeners = [];
+}
+function cleanupRequestsListener() {
+  if (requestsRef && requestsCb) requestsRef.off("value", requestsCb);
+}
   function initials(name) {
     const s = String(name || "RT").trim();
     if (!s) return "RT";
