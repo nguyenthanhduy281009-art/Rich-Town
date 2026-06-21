@@ -925,18 +925,11 @@
             </div>
           </div>
           <button
-            class="invite-btn"
-            onclick='inviteFriend("${item.uid}", ${JSON.stringify(item.name)})'
-            ${item.status === "offline" || item.status === "playing" ? "disabled" : ""}
-          >
-            ${
-              item.status === "playing"
-                ? "ĐANG CHƠI"
-                : item.status === "offline"
-                  ? "OFFLINE"
-                  : "MỜI"
-            }
-          </button>
+    class="invite-btn"
+    onclick='inviteFriend("${item.uid}", ${JSON.stringify(item.name)})'
+>
+    MỜI
+</button>
         </div>
       `).join("");
     } catch (e) {
@@ -945,7 +938,57 @@
     }
   }
 
-  window.inviteFriend = async function(uid, name) {
+  window.inviteFriend = async function(uid, name){
+
+    const userSnap =
+        await db.ref("users/" + uid).once("value");
+
+    const user =
+        userSnap.val() || {};
+
+    if(
+        user.status !== "online" &&
+        user.status !== "room"
+    ){
+        alert(
+            name +
+            " hiện không thể nhận lời mời."
+        );
+        return;
+    }
+
+    try{
+
+        await db.ref(
+            `invites/${uid}`
+        ).push({
+
+            fromUid: currentUser.uid,
+
+            fromName:
+                currentUserData?.name ||
+                currentUser.displayName,
+
+            roomId: roomId,
+
+            createdAt:
+                firebase.database.ServerValue.TIMESTAMP
+        });
+
+        alert(
+            "Đã gửi lời mời cho " +
+            name
+        );
+
+    }catch(e){
+
+        console.error(e);
+
+        alert(
+            "Không thể gửi lời mời"
+        );
+    }
+};
     try {
       await db.ref(`invites/${uid}`).push({
         fromUid: currentUser.uid,
