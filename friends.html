@@ -795,10 +795,7 @@
             name: u.name || "Người chơi",
             playerId: u.playerId || u.id || uid.substring(0, 6).toUpperCase(),
             avatarUrl: u.avatar || u.avatarUrl || "",
-            status:
-              (u.status === "offline" && u.onlineUntil && Date.now() < u.onlineUntil)
-                ? "online"
-                : (u.status || "offline")
+            status: u.status || "offline"
           };
 
           const index = allFriends.findIndex(f => f.uid === uid);
