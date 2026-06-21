@@ -667,18 +667,18 @@
   if (!currentUser) return;
   const userRef = db.ref(`users/${currentUser.uid}`);
   
-  // Chỉ update lastSeen, không set status offline
+  // Chỉ set lastSeen khi ngắt kết nối, không set status
   userRef.onDisconnect().update({
     lastSeen: firebase.database.ServerValue.TIMESTAMP
   });
 
-  // Update trạng thái online liên tục
+  // Heartbeat mỗi 5 giây
   setInterval(() => {
     userRef.update({
       status: "room",
       lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
-  }, 5000); 
+  }, 5000);
 }
   function renderPlayers(room) {
     const players = room.players || {};
@@ -893,6 +893,16 @@
             const list = Object.entries(users)
             .filter(([uid]) => uid !== currentUser.uid)
             .map(([uid, u]) => {
+                // ... trong hàm loadFriends, bên trong .map(([uid, u]) => {
+    const diff = Date.now() - (u?.lastSeen || 0);
+    const isOnline = diff < 12000; // Ngưỡng 12 giây
+
+    return {
+        uid,
+        name: u?.name || "Người chơi",
+        status: isOnline ? (u?.status || "online") : "offline"
+    };
+// ... tiếp tục phần render danh sách
 
     const online =
         Date.now() - (u?.lastSeen || 0) < 10000;
