@@ -587,6 +587,21 @@
     }
   }
 
+    function cleanupPresenceListener() {
+
+  if (presenceConnectedRef && presenceConnectedCb) {
+    presenceConnectedRef.off("value", presenceConnectedCb);
+  }
+
+  if (presenceInterval) {
+    clearInterval(presenceInterval);
+    presenceInterval = null;
+  }
+
+  presenceConnectedRef = null;
+  presenceConnectedCb = null;
+}
+
   function isFriend(uid) {
     return allFriends.some(f => f.uid === uid);
   }
