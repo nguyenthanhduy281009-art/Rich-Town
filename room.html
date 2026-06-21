@@ -887,63 +887,104 @@
     });
   }
 
-  async function loadFriends() {
-    try {
-      const snap = await db.ref("users").once("value");
-      const users = snap.val() || {};
-      const list = Object.entries(users)
-        .filter(([uid]) => uid !== currentUser.uid)
-        .map(([uid, u]) => ({
-          uid,
-          name: u?.name || "Người chơi",
-          status: u?.status || "offline"
-        }))
-        .slice(0, 12);
+  function loadFriends() {
 
-      if (!list.length) {
-        el.friendsList.innerHTML = `<div class="loading">Chưa có ai khác trong hệ thống.</div>`;
-        return;
-      }
+    db.ref("users").on("value", snap => {
 
-      el.friendsList.innerHTML = list.map(item => `
-        <div class="friend-item">
-          <div class="friend-left">
-            <div class="friend-avatar">${escapeHtml(initials(item.name))}</div>
-            <div class="friend-meta">
-              <div class="friend-name">${escapeHtml(item.name)}</div>
-              <div class="friend-sub">
-                ${
-                  item.status === "online"
-                    ? "🟢 Online"
-                    : item.status === "room"
-                      ? "🏠 Trong phòng"
-                      : item.status === "playing"
-                        ? "🎮 Đang chơi"
-                        : "⚫ Offline"
-                }
-              </div>
-            </div>
-          </div>
-          <button
-            class="invite-btn"
-            onclick='inviteFriend("${item.uid}", ${JSON.stringify(item.name)})'
-            ${item.status === "offline" || item.status === "playing" ? "disabled" : ""}
-          >
-            ${
-              item.status === "playing"
-                ? "ĐANG CHƠI"
-                : item.status === "offline"
-                  ? "OFFLINE"
-                  : "MỜI"
+        try {
+
+            const users = snap.val() || {};
+
+            const list = Object.entries(users)
+            .filter(([uid]) => uid !== currentUser.uid)
+            .map(([uid, u]) => ({
+                uid,
+                name: u?.name || "Người chơi",
+                status: u?.status || "offline"
+            }))
+            .slice(0, 12);
+
+            if (!list.length) {
+
+                el.friendsList.innerHTML =
+                `<div class="loading">
+                    Chưa có ai khác trong hệ thống.
+                </div>`;
+
+                return;
             }
-          </button>
-        </div>
-      `).join("");
-    } catch (e) {
-      console.error(e);
-      el.friendsList.innerHTML = `<div class="loading">Không tải được danh sách bạn bè.</div>`;
-    }
-  }
+
+            el.friendsList.innerHTML = list.map(item => `
+
+                <div class="friend-item">
+
+                    <div class="friend-left">
+
+                        <div class="friend-avatar">
+                            ${escapeHtml(initials(item.name))}
+                        </div>
+
+                        <div class="friend-meta">
+
+                            <div class="friend-name">
+                                ${escapeHtml(item.name)}
+                            </div>
+
+                            <div class="friend-sub">
+
+                                ${
+                                    item.status === "online"
+                                    ? "🟢 Online"
+
+                                    : item.status === "room"
+                                    ? "🏠 Trong phòng"
+
+                                    : item.status === "playing"
+                                    ? "🎮 Đang chơi"
+
+                                    : "⚫ Offline"
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        class="invite-btn"
+                        onclick='inviteFriend("${item.uid}", ${JSON.stringify(item.name)})'
+                        ${item.status === "offline" || item.status === "playing" ? "disabled" : ""}
+                    >
+
+                        ${
+                            item.status === "playing"
+                            ? "ĐANG CHƠI"
+
+                            : item.status === "offline"
+                            ? "OFFLINE"
+
+                            : "MỜI"
+                        }
+
+                    </button>
+
+                </div>
+
+            `).join("");
+
+        } catch (e) {
+
+            console.error(e);
+
+            el.friendsList.innerHTML =
+            `<div class="loading">
+                Không tải được danh sách bạn bè.
+            </div>`;
+        }
+
+    });
+}
 
   window.inviteFriend = async function(uid, name) {
     try {
@@ -1122,10 +1163,7 @@
       return;
     }
 
-    if (!friendsLoaded) {
-      friendsLoaded = true;
-      loadFriends();
-    }
+    loadFriends();
 
     try {
       await db.ref(`users/${currentUser.uid}`).update({
