@@ -649,24 +649,30 @@
         }
 
         async function setupPresence() {
+
     if (!currentUser) return;
 
     const userRef = db.ref(`users/${currentUser.uid}`);
     const connectedRef = db.ref(".info/connected");
 
     connectedRef.on("value", (snap) => {
-        if (!snap.val()) return;
 
-        userRef.onDisconnect().update({
-            status: "offline",
-            lastSeen: firebase.database.ServerValue.TIMESTAMP
-        });
+        if (snap.val() === true) {
 
-        userRef.update({
-            status: "room",
-            lastSeen: firebase.database.ServerValue.TIMESTAMP
-        });
+            userRef.onDisconnect().update({
+                status: "offline",
+                lastSeen: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            userRef.update({
+                status: "room",
+                lastSeen: firebase.database.ServerValue.TIMESTAMP
+            });
+
+        }
+
     });
+
 }
         
         function escapeHtml(str) {
