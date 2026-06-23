@@ -619,7 +619,7 @@
     const players = room.players || {};
     const entries = getPlayerEntries(players);
     const hostId = room.hostId || "";
-    const isHostMe = currentUser.uid === hostId;
+    const isHostMe = currentUser?.uid === hostId;
 
     el.playerCount.textContent = `${entries.length}/8`;
     el.hostName.textContent =
@@ -770,24 +770,34 @@
 
   function watchRoom() {
     roomRef.on("value", snap => {
-      if (!snap.exists()) {
-        alert("Phòng đã bị xóa!");
-        location.replace("index.html");
-        return;
-      }
 
-      const room = snap.val() || {};
-      renderRoom(room);
+        if (!snap.exists()) {
+            alert("Phòng đã bị xóa!");
+            location.replace("index.html");
+            return;
+        }
 
-      if (room.status === "playing" && !redirectingToGame) {
-        redirectingToGame = true;
-        setTimeout(() => {
-          location.replace("game.html?id=" + roomId);
-        }, 300);
-      }
+        const room = snap.val() || {};
+
+        // KIỂM TRA BỊ KICK
+        if (
+            currentUser &&
+            room.players &&
+            !room.players[currentUser.uid]
+        ) {
+            alert("CÚT RA NGOÀI");
+            location.replace("index.html");
+            return;
+        }
+
+        renderRoom(room);
+
+        if (room.status === "playing" && !redirectingToGame) {
+            redirectingToGame = true;
+            location.replace("game.html?id=" + roomId);
+        }
     });
-  }
-
+}
         function setupPresence() {
 
     if (!currentUser) return;
