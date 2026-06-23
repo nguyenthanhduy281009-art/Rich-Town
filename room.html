@@ -1041,48 +1041,52 @@ let status =
   }
 
   async function leaveRoom() {
-    try {
-      if (!currentUser) {
+    if (!currentUser || !roomRef) {
         location.replace("index.html");
         return;
-      }
+    }
 
-      if (roomRef) {
+    try {
         const roomSnap = await roomRef.once("value");
         const room = roomSnap.val();
-        const userRef = db.ref(`users/${currentUser.uid}`);
-
-        await userRef.onDisconnect().cancel();
-
-        if (room && room.players && room.players[currentUser.uid]) {
-          const players = room.players || {};
-          const remaining = Object.entries(players).filter(([id]) => id !== currentUser.uid);
-
-          const updates = {};
-          updates[`rooms/${roomId}/players/${currentUser.uid}`] = null;
-
-          if (remaining.length === 0) {
-            updates[`rooms/${roomId}`] = null;
-          } else if (room.hostId === currentUser.uid) {
-            updates[`rooms/${roomId}/hostId`] = remaining[0][0];
-          }
-
-          await db.ref().update(updates);
+        
+        if (!room) {
+            location.replace("index.html");
+            return;
         }
 
-        await userRef.update({
-          status: "online",
-          lastSeen: firebase.database.ServerValue.TIMESTAMP
+        const updates = {};
+        const players = room.players || {};
+        
+        // 1. Xóa người chơi hiện tại
+        updates[`rooms/${roomId}/players/${currentUser.uid}`] = null;
+
+        // 2. Kiểm tra xem còn ai không
+        const remainingUids = Object.keys(players).filter(id => id !== currentUser.uid);
+
+        if (remainingUids.length === 0) {
+            // Nếu không còn ai -> XÓA PHÒNG HOÀN TOÀN
+            updates[`rooms/${roomId}`] = null;
+        } else if (room.hostId === currentUser.uid) {
+            // Nếu còn người nhưng mình là host -> chuyển quyền cho người đầu tiên còn lại
+            updates[`rooms/${roomId}/hostId`] = remainingUids[0];
+        }
+
+        // Thực hiện cập nhật tất cả trong 1 lần để tránh lỗi
+        await db.ref().update(updates);
+        
+        // Reset trạng thái user
+        await db.ref(`users/${currentUser.uid}`).update({
+            status: "online",
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
         });
-      }
 
-      location.replace("index.html");
+        location.replace("index.html");
     } catch (e) {
-      console.error(e);
-      location.replace("index.html");
+        console.error("Lỗi khi thoát:", e);
+        location.replace("index.html");
     }
-  }
-
+}
   auth.onAuthStateChanged(async user => {
   if (!user) {
     location.replace("auth.html");
