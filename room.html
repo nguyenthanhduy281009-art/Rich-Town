@@ -957,13 +957,11 @@
 
     try {
 
-        const inviteRef = db.ref(`invites/${uid}`).push();
-
-        await inviteRef.set({
+        await db.ref(`invites/${uid}`).push({
             fromUid: currentUser.uid,
-            fromName: currentUserData?.name || currentUser.displayName || "Người chơi",
+            fromName: currentUserData?.name || "Người chơi",
             roomId: roomId,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
+            createdAt: Date.now()
         });
 
         alert(`Đã gửi lời mời cho ${name}`);
