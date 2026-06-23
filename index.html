@@ -231,7 +231,6 @@
     const joinBtn = document.getElementById("joinBtn");
     const roomInput = document.getElementById("roomCode");
 
-    let inviteListenerStarted = false;
 
     auth.onAuthStateChanged(async (user) => {
       try {
@@ -245,10 +244,6 @@
         setupPresence(user.uid);
         await loadUserData(user.uid);
 
-        if (!inviteListenerStarted) {
-          watchInvites(user.uid);
-          inviteListenerStarted = true;
-        }
       } catch (err) {
         console.error("Auth handler error:", err);
         statusTextEl.textContent = "Có lỗi khi tải dữ liệu";
@@ -398,53 +393,7 @@
       });
     }
 
-    function watchInvites(uid) {
-
-    const inviteRef = db.ref(`invites/${uid}`);
-
-    inviteRef.limitToLast(1).on("child_added", async (snap) => {
-
-        try {
-
-            const invite = snap.val();
-
-            if (!invite) return;
-
-            // Bỏ lời mời quá cũ (> 5 phút)
-            if (
-                invite.createdAt &&
-                Date.now() - invite.createdAt > 5 * 60 * 1000
-            ) {
-                await snap.ref.remove();
-                return;
-            }
-
-            const accept = confirm(
-                `${invite.fromName || "Ai đó"} đã mời bạn vào phòng ${invite.roomId}\n\nBạn có muốn tham gia không?`
-            );
-
-            if (accept && invite.roomId) {
-
-                await snap.ref.remove();
-
-                window.location.replace(
-                    `room.html?id=${invite.roomId}`
-                );
-
-                return;
-            }
-
-            await snap.ref.remove();
-
-        } catch (err) {
-
-            console.error("Invite error:", err);
-
-        }
-
-    });
-
-}
+    
 
     roomInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") joinRoom();
