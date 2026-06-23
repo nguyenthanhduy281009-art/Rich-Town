@@ -1,33 +1,29 @@
-console.log("DEBUG: invites.js đã được tải");
-
+// invites.js - Dùng trực tiếp đối tượng firebase toàn cục
 firebase.auth().onAuthStateChanged(user => {
     if (user) {
-        console.log("DEBUG: Đã xác định user:", user.uid);
         startInviteListener(user.uid);
-    } else {
-        console.log("DEBUG: Chưa đăng nhập, không lắng nghe lời mời");
     }
 });
 
 function startInviteListener(uid) {
+    // Sử dụng trực tiếp firebase.database()
     const inviteRef = firebase.database().ref(`invites/${uid}`);
-    console.log("DEBUG: Đang bắt đầu lắng nghe tại:", `invites/${uid}`);
     
-    inviteRef.off(); // Xóa listener cũ
+    // Xóa listener cũ trước khi gắn mới để tránh trùng lặp
+    inviteRef.off();
 
     inviteRef.on("child_added", (snap) => {
-        console.log("DEBUG: Phát hiện lời mời mới!", snap.val());
         const invite = snap.val();
         if (!invite) return;
 
+        // Hiển thị lời mời
         const accept = confirm(`${invite.fromName || "Ai đó"} đã mời bạn vào phòng ${invite.roomId}. Tham gia ngay?`);
         
+        // Xóa lời mời ngay sau khi đã xử lý
         snap.ref.remove();
 
         if (accept) {
             window.location.href = `room.html?id=${invite.roomId}`;
         }
-    }, (error) => {
-        console.error("DEBUG: Lỗi khi lắng nghe Firebase:", error);
     });
 }
