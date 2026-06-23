@@ -961,7 +961,7 @@
             fromUid: currentUser.uid,
             fromName: currentUserData?.name || currentUser.displayName || "Người chơi",
             roomId: roomId,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
+            createdAt: Date.now()
         });
 
         alert(`Đã gửi lời mời cho ${name}`);
