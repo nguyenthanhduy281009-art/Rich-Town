@@ -991,52 +991,48 @@
   };
 
         function watchInvites(uid) {
+    const inviteRef = db.ref(`invites/${uid}`);
 
-    db.ref(`invites/${uid}`).limitToLast(1).on("child_added", async (snap) => {
-
-        try {
-
-            const invite = snap.val();
-
-            if (!invite) return;
-
-            if (invite.roomId === roomId) {
-    await snap.ref.remove();
-    return;
-}
-
-            // Không hiện lời mời do chính mình gửi
-            if (invite.fromUid === currentUser.uid) return;
-
-            const accept = confirm(
-                `${invite.fromName || "Ai đó"} đã mời bạn vào phòng ${invite.roomId}\n\nBạn có muốn tham gia không?`
-            );
-
-            await snap.ref.remove();
-
-            if (!accept) return;
-
-            // Nếu đang ở phòng khác thì thoát phòng hiện tại
-            if (currentRoom && roomId !== invite.roomId) {
-
-                const updates = {};
-
-                updates[`rooms/${roomId}/players/${currentUser.uid}`] = null;
-                updates[`users/${currentUser.uid}/status`] = "online";
-
-                await db.ref().update(updates);
-            }
-
-            location.replace(`room.html?id=${invite.roomId}`);
-
-        } catch (e) {
-
-            console.error("Invite watch error:", e);
-
+    // 1. Xóa sạch mọi lời mời cũ khi vừa load trang để tránh "ghost invite"
+    inviteRef.once('value', (snap) => {
+        if (snap.exists()) {
+            snap.forEach((childSnap) => {
+                childSnap.ref.remove();
+            });
         }
-
     });
 
+    // 2. Lắng nghe lời mời mới thời gian thực (bỏ .limitToLast)
+    inviteRef.on("child_added", async (snap) => {
+        try {
+            const invite = snap.val();
+            if (!invite) return;
+
+            // Nếu lời mời này là vào chính phòng đang ở, xóa luôn
+            if (invite.roomId === roomId) {
+                await snap.ref.remove();
+                return;
+            }
+
+            // Hiển thị lời mời
+            const accept = confirm(
+                `${invite.fromName || "Ai đó"} đã mời bạn vào phòng ${invite.roomId}\n\nTham gia ngay?`
+            );
+
+            // Xóa lời mời sau khi người dùng đã phản hồi
+            await snap.ref.remove();
+
+            if (accept) {
+                // Nếu đang ở phòng khác thì xử lý thoát phòng hiện tại
+                if (roomId && roomId !== invite.roomId) {
+                    await db.ref(`rooms/${roomId}/players/${currentUser.uid}`).remove();
+                }
+                window.location.replace(`room.html?id=${invite.roomId}`);
+            }
+        } catch (e) {
+            console.error("Invite processing error:", e);
+        }
+    });
 }
 
   async function startGame() {
