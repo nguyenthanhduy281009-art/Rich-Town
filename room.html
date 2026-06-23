@@ -634,11 +634,12 @@ function setupPresence() {
 
     heartbeat = setInterval(() => {
 
-        userRef.update({
-            lastSeen: firebase.database.ServerValue.TIMESTAMP
-        });
+    userRef.update({
+        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+        status: currentRoom ? "room" : "online"
+    });
 
-    }, 5000);
+}, 10000);
 }
   function renderPlayers(room) {
     const players = room.players || {};
@@ -813,6 +814,42 @@ function setupPresence() {
     });
   }
 
+        function setupPresence() {
+
+    if (!currentUser) return;
+
+    const userRef = db.ref(`users/${currentUser.uid}`);
+    const connectedRef = db.ref(".info/connected");
+
+    connectedRef.on("value", snap => {
+
+        if (snap.val() === true) {
+
+            userRef.onDisconnect().update({
+                status: "offline",
+                lastSeen: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            userRef.update({
+                status: currentRoom ? "room" : "online",
+                lastSeen: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+
+    });
+
+    if (heartbeat) clearInterval(heartbeat);
+
+    heartbeat = setInterval(() => {
+
+        userRef.update({
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+
+    }, 10000);
+
+}
+
   function loadFriends() {
 
     db.ref("users").on("value", snap => {
@@ -827,15 +864,6 @@ function setupPresence() {
 
     let status = u?.status || "offline";
 
-if (u?.lastSeen) {
-
-    const diff = Date.now() - u.lastSeen;
-
-    if (diff > 30000) {
-        status = "offline";
-    }
-
-}
 
     return {
     uid,
@@ -1092,8 +1120,6 @@ if (u?.lastSeen) {
     status: "room",
     lastSeen: firebase.database.ServerValue.TIMESTAMP
 });
-
-loadFriends();
 
     await ensureJoinedRoom();
     setNotice("Đã vào phòng.");
