@@ -614,33 +614,7 @@
 
 
   // Heartbeat mỗi 5 giây
-
-function setupPresence() {
-
-    if (!currentUser) return;
-
-    const userRef = db.ref(`users/${currentUser.uid}`);
-
-    userRef.onDisconnect().update({
-        lastSeen: firebase.database.ServerValue.TIMESTAMP
-    });
-
-    // Cập nhật NGAY lập tức
-    userRef.update({
-        lastSeen: firebase.database.ServerValue.TIMESTAMP
-    });
-
-    if (heartbeat) clearInterval(heartbeat);
-
-    heartbeat = setInterval(() => {
-
-    userRef.update({
-        lastSeen: firebase.database.ServerValue.TIMESTAMP,
-        status: currentRoom ? "room" : "online"
-    });
-
-}, 10000);
-}
+        
   function renderPlayers(room) {
     const players = room.players || {};
     const entries = getPlayerEntries(players);
@@ -831,11 +805,10 @@ function setupPresence() {
             });
 
             userRef.update({
-                status: currentRoom ? "room" : "online",
+                status: "room",
                 lastSeen: firebase.database.ServerValue.TIMESTAMP
             });
         }
-
     });
 
     if (heartbeat) clearInterval(heartbeat);
@@ -843,11 +816,11 @@ function setupPresence() {
     heartbeat = setInterval(() => {
 
         userRef.update({
+            status: "room",
             lastSeen: firebase.database.ServerValue.TIMESTAMP
         });
 
     }, 10000);
-
 }
 
   function loadFriends() {
@@ -1096,7 +1069,6 @@ function setupPresence() {
 
   currentUser = user;
 
-  await setupPresence();
 
   try {
   } catch (e) {}
@@ -1122,6 +1094,8 @@ function setupPresence() {
 });
 
     await ensureJoinedRoom();
+      currentRoom = { roomId };
+setupPresence();
     setNotice("Đã vào phòng.");
     watchRoom();
   } catch (e) {
