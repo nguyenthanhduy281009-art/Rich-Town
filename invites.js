@@ -1,29 +1,27 @@
 // invites.js
-firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-        startInviteListener(user.uid);
-    }
-});
+async function watchInvites(uid) {
+    if (!uid) return;
+    
+    console.log("Đang theo dõi lời mời cho:", uid); // Kiểm tra xem hàm có chạy không
+    
+    const invitesRef = db.ref(`invites/${uid}`);
 
-function startInviteListener(uid) {
-    const inviteRef = firebase.database().ref(`invites/${uid}`);
-    inviteRef.off(); // Dọn dẹp listener cũ
-
-    inviteRef.on("child_added", (snap) => {
-        const invite = snap.val();
-        if (!invite) return;
-
-        // Hiển thị lời mời
-        const accept = confirm(`${invite.fromName || "Ai đó"} đã mời bạn vào phòng ${invite.roomId}. Tham gia ngay?`);
+    // Sử dụng 'child_added' để nhận lời mời mới
+    invitesRef.on('child_added', (snapshot) => {
+        const invite = snapshot.val();
+        const inviteKey = snapshot.key;
         
-        // CHỈ XÓA KHI ĐÃ ĐƯỢC XỬ LÝ (CHẤP NHẬN HOẶC TỪ CHỐI)
-        if (accept) {
-            snap.ref.remove(); // Xóa sau khi đã đồng ý
+        console.log("Có lời mời mới!", invite);
+        
+        // Hiển thị thông báo (ví dụ dùng confirm hoặc một modal tùy chỉnh)
+        if (confirm(`Bạn nhận được lời mời từ ${invite.fromName}. Vào phòng ${invite.roomId} ngay?`)) {
+            // Xóa lời mời sau khi chấp nhận
+            invitesRef.child(inviteKey).remove();
+            // Chuyển hướng
             window.location.href = `room.html?id=${invite.roomId}`;
         } else {
-            // Nếu không muốn xóa khi nhấn Cancel thì bỏ dòng này. 
-            // Nếu muốn xóa luôn để tránh bị làm phiền thì giữ nguyên:
-            snap.ref.remove(); 
+            // Chỉ xóa lời mời nếu từ chối
+            invitesRef.child(inviteKey).remove();
         }
     });
 }
