@@ -143,7 +143,6 @@
         }
 
         .players-card,
-        .role-card,
         .friends-card,
         .actions-card,
         .status-card{
@@ -271,29 +270,6 @@
             border-color: rgba(255,213,74,.7);
         }
 
-        .role-buttons{
-            display:grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap:12px;
-        }
-
-        .role-btn{
-            border:none;
-            border-radius:18px;
-            padding:14px 12px;
-            color:#fff;
-            cursor:pointer;
-            background: rgba(255,255,255,.08);
-            border:1px solid rgba(255,255,255,.12);
-            transition: transform .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
-            text-align:left;
-        }
-
-        .role-btn:hover{
-            transform: translateY(-1px);
-            background: rgba(255,255,255,.11);
-            border-color: rgba(255,255,255,.2);
-        }
 
         .role-btn .r1{
             display:block;
@@ -308,16 +284,6 @@
             color:var(--muted);
         }
 
-        .role-btn.taken{
-            opacity:.45;
-            cursor:not-allowed;
-        }
-
-        .role-btn.active{
-            background: linear-gradient(135deg, rgba(96,165,250,.25), rgba(96,165,250,.12));
-            border-color: rgba(96,165,250,.35);
-            box-shadow: inset 0 0 0 1px rgba(96,165,250,.18);
-        }
 
         .friend-list{
             display:flex;
@@ -657,11 +623,13 @@
 
   // Heartbeat mỗi 5 giây
   setInterval(() => {
+    if (currentRoom?.status === "playing") return;
+
     userRef.update({
-      status: "room",
-      lastSeen: firebase.database.ServerValue.TIMESTAMP
+        status: "room",
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
-  }, 5000);
+}, 5000);
 }
   function renderPlayers(room) {
     const players = room.players || {};
@@ -974,7 +942,6 @@
     }
   };
 
-  };
 
   window.toggleReady = async function() {
     if (!currentUser || !currentRoom) return;
