@@ -543,34 +543,11 @@
                     <div class="players-grid" id="playersGrid"></div>
                 </div>
 
-                <div class="role-card">
-                    <div class="section-title">
-                        <h3>CHỌN VAI TRÒ</h3>
-                        <span>Chỉ 1 Màn Hình Chính, 1 Ngân Hàng</span>
-                    </div>
-                    <div class="role-buttons">
-                        <button class="role-btn" id="btnMainScreen" onclick="chooseRole('mainScreen')">
-                            <span class="r1">🖥️ Màn Hình Chính</span>
-                            <span class="r2" id="txtMainScreen">Có thể chọn</span>
-                        </button>
-
-                        <button class="role-btn" id="btnBank" onclick="chooseRole('bank')">
-                            <span class="r1">🏦 Ngân Hàng</span>
-                            <span class="r2" id="txtBank">Có thể chọn</span>
-                        </button>
-
-                        <button class="role-btn" id="btnPlayer" onclick="chooseRole('player')">
-                            <span class="r1">🙂 Người Chơi</span>
-                            <span class="r2" id="txtPlayer">Luôn sẵn sàng</span>
-                        </button>
-                    </div>
-                </div>
 
                 <div class="actions-card">
                     <div>
                         <div class="section-title" style="margin:0 0 6px 0;">
                             <h3>THAO TÁC</h3>
-                            <span id="myRoleLabel">Đang kiểm tra...</span>
                         </div>
                         <div class="small" id="roomHint">Bạn đang ở trong phòng chờ.</div>
                     </div>
@@ -638,14 +615,7 @@
     statusText: document.getElementById("statusText"),
     statusPill: document.getElementById("statusPill"),
     actionButtons: document.getElementById("actionButtons"),
-    myRoleLabel: document.getElementById("myRoleLabel"),
     roomHint: document.getElementById("roomHint"),
-    btnMainScreen: document.getElementById("btnMainScreen"),
-    btnBank: document.getElementById("btnBank"),
-    btnPlayer: document.getElementById("btnPlayer"),
-    txtMainScreen: document.getElementById("txtMainScreen"),
-    txtBank: document.getElementById("txtBank"),
-    txtPlayer: document.getElementById("txtPlayer")
   };
 
   function setNotice(msg) {
@@ -675,16 +645,6 @@
     });
   }
 
-  function getExclusiveRoleOccupied(players, role, ignoreUid) {
-    return getPlayerEntries(players).some(([uid, p]) => uid !== ignoreUid && p.role === role);
-  }
-
-  function getRoleStatusText(players, role, uid) {
-    const mine = players?.[uid]?.role === role;
-    if (mine) return "Đã chọn";
-    if (role === "player") return "Luôn sẵn sàng";
-    return getExclusiveRoleOccupied(players, role, uid) ? "Đã có người chọn" : "Có thể chọn";
-  }
 
   function setupPresence() {
   if (!currentUser) return;
@@ -760,40 +720,7 @@
     el.playersGrid.innerHTML = slots.join("");
 }
 
-  function renderRoles(room) {
-    const players = room.players || {};
-    const myUid = currentUser?.uid;
-    const myRole = players?.[myUid]?.role || "player";
-
-    const mainTaken = getExclusiveRoleOccupied(players, "mainScreen", myUid);
-    const bankTaken = getExclusiveRoleOccupied(players, "bank", myUid);
-
-    const mainMine = myRole === "mainScreen";
-    const bankMine = myRole === "bank";
-    const playerMine = myRole === "player";
-
-    el.txtMainScreen.textContent = getRoleStatusText(players, "mainScreen", myUid);
-    el.txtBank.textContent = getRoleStatusText(players, "bank", myUid);
-    el.txtPlayer.textContent = getRoleStatusText(players, "player", myUid);
-
-    el.btnMainScreen.classList.toggle("taken", mainTaken && !mainMine);
-    el.btnBank.classList.toggle("taken", bankTaken && !bankMine);
-    el.btnPlayer.classList.toggle("taken", false);
-
-    el.btnMainScreen.classList.toggle("active", mainMine);
-    el.btnBank.classList.toggle("active", bankMine);
-    el.btnPlayer.classList.toggle("active", playerMine);
-
-    el.btnMainScreen.disabled = mainTaken && !mainMine;
-    el.btnBank.disabled = bankTaken && !bankMine;
-    el.btnPlayer.disabled = false;
-
-    el.myRoleLabel.textContent = mainMine
-      ? "Vai trò của bạn: Màn Hình Chính"
-      : bankMine
-        ? "Vai trò của bạn: Ngân Hàng"
-        : "Vai trò của bạn: Người Chơi";
-  }
+  
 
   function renderActions(room) {
     const players = room.players || {};
@@ -826,7 +753,7 @@
 
       el.actionButtons.appendChild(leaveBtn);
       el.actionButtons.appendChild(readyBtn);
-      el.roomHint.textContent = "Hãy chọn vai trò rồi bấm Sẵn sàng.";
+      el.roomHint.textContent = "Hãy bấm Sẵn sàng khi đã chuẩn bị.";
     }
   }
 
@@ -845,7 +772,6 @@
     }
 
     renderPlayers(room);
-    renderRoles(room);
     renderActions(room);
     setNotice(room.status === "playing" ? "Phòng đã bắt đầu, đang chuyển vào game..." : "Phòng đang chờ người chơi.");
   }
@@ -883,11 +809,10 @@
 
       const name = currentUserData?.name || currentUser.displayName || currentUser.email || "Người chơi";
       await roomRef.child(`players/${currentUser.uid}`).set({
-        name,
-        ready: false,
-        role: "player",
-        joinedAt: firebase.database.ServerValue.TIMESTAMP
-      });
+    name,
+    ready:false,
+    joinedAt: firebase.database.ServerValue.TIMESTAMP
+});
     }
   }
 
@@ -922,19 +847,9 @@
             const list = Object.entries(users)
             .filter(([uid]) => uid !== currentUser.uid)
             .map(([uid, u]) => {
-                // ... trong hàm loadFriends, bên trong .map(([uid, u]) => {
-    const diff = Date.now() - (u?.lastSeen || 0);
-    const isOnline = diff < 30000; // Ngưỡng 12 giây
-
-    return {
-        uid,
-        name: u?.name || "Người chơi",
-        status: isOnline ? (u?.status || "online") : "offline"
-    };
-// ... tiếp tục phần render danh sách
 
     const online =
-        Date.now() - (u?.lastSeen || 0) < 10000;
+        Date.now() - (u?.lastSeen || 0) < 30000;
 
     return {
         uid,
@@ -1059,33 +974,6 @@
     }
   };
 
-  window.chooseRole = async function(role) {
-    if (!currentUser || !currentRoom) return;
-
-    const room = currentRoom;
-    const players = room.players || {};
-    const me = players[currentUser.uid];
-
-    if (!me) {
-      alert("Bạn chưa ở trong phòng.");
-      return;
-    }
-
-    if (role === "mainScreen" || role === "bank") {
-      const occupied = getExclusiveRoleOccupied(players, role, currentUser.uid);
-      if (occupied && me.role !== role) {
-        alert("Vai trò này đã có người chọn!");
-        return;
-      }
-    }
-
-    try {
-      await roomRef.child(`players/${currentUser.uid}/role`).set(role);
-      setNotice("Đã cập nhật vai trò.");
-    } catch (e) {
-      console.error(e);
-      alert("Không thể chọn vai trò.");
-    }
   };
 
   window.toggleReady = async function() {
@@ -1118,22 +1006,12 @@
         return;
       }
 
-      const hasMain = entries.some(([, p]) => p.role === "mainScreen");
-      const hasBank = entries.some(([, p]) => p.role === "bank");
       const allReady = entries.every(([uid, p]) => {
         if (uid === room.hostId) return true;
         return p.ready === true;
       });
 
-      if (!hasMain) {
-        alert("Cần chọn Màn Hình Chính.");
-        return;
-      }
-
-      if (!hasBank) {
-        alert("Cần chọn Ngân Hàng.");
-        return;
-      }
+      
 
       if (!allReady) {
         alert("Có người chơi chưa sẵn sàng.");
@@ -1210,10 +1088,6 @@
   await setupPresence();
 
   try {
-      await db.ref(`users/${currentUser.uid}`).update({
-  status: "online",
-  lastSeen: firebase.database.ServerValue.TIMESTAMP
-});
   } catch (e) {}
 
   // 👉 LẤY USER DATA ĐÚNG CHỖ
