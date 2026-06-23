@@ -960,6 +960,26 @@ let status =
     });
 }
 
+  window.inviteFriend = async function(uid, name) {
+
+    try {
+
+        await db.ref(`invites/${uid}`).push({
+            fromUid: currentUser.uid,
+            fromName: currentUserData?.name || "Người chơi",
+            roomId: roomId,
+            createdAt: Date.now()
+        });
+
+        alert(`Đã gửi lời mời cho ${name}`);
+
+    } catch (e) {
+
+        console.error(e);
+        alert("Không thể gửi lời mời");
+
+    }
+};
 
   window.toggleReady = async function() {
     if (!currentUser || !currentRoom) return;
@@ -1086,6 +1106,8 @@ let status =
     location.replace("index.html");
     return;
   }
+
+  loadFriends();
 
 try {
     await db.ref(`users/${currentUser.uid}`).update({
