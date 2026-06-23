@@ -570,6 +570,7 @@
   let currentRoom = null;
   let friendsLoaded = false;
   let redirectingToGame = false;
+  let heartbeat = null;
 
   const el = {
     roomCode: document.getElementById("roomCode"),
@@ -622,7 +623,6 @@
   });
 
   // Heartbeat mỗi 5 giây
-  let heartbeat = null;
 
 function setupPresence() {
 
@@ -843,12 +843,10 @@ if (diff < 15000) {
 }
 
     return {
-        uid,
-        name: u?.name || "Người chơi",
-        status: online
-            ? (u?.status || "online")
-            : "offline"
-    };
+    uid,
+    name: u?.name || "Người chơi",
+    status
+};
 
 })
             .slice(0, 12);
@@ -1124,20 +1122,6 @@ if (diff < 15000) {
         alert("Không thể kick người chơi.");
     }
 };
-        window.addEventListener("beforeunload", () => {
-
-    if (!currentUser) return;
-
-    navigator.sendBeacon(
-        "",
-        ""
-    );
-
-    db.ref(`users/${currentUser.uid}`).update({
-        lastSeen: Date.now()
-    });
-
-});
 </script>
 </body>
 </html>
