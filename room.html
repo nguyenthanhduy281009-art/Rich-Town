@@ -613,15 +613,6 @@
   }
 
 
-  function setupPresence() {
-  if (!currentUser) return;
-  const userRef = db.ref(`users/${currentUser.uid}`);
-  
-  // Chỉ set lastSeen khi ngắt kết nối, không set status
-  userRef.onDisconnect().update({
-    lastSeen: firebase.database.ServerValue.TIMESTAMP
-  });
-
   // Heartbeat mỗi 5 giây
 
 function setupPresence() {
@@ -631,6 +622,11 @@ function setupPresence() {
     const userRef = db.ref(`users/${currentUser.uid}`);
 
     userRef.onDisconnect().update({
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    // Cập nhật NGAY lập tức
+    userRef.update({
         lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
 
@@ -830,15 +826,12 @@ function setupPresence() {
             .filter(([uid]) => uid !== currentUser.uid)
             .map(([uid, u]) => {
 
-    const diff = Date.now() - (u?.lastSeen || 0);
+    let status = u?.status || "offline";
 
-let status;
+const diff = Date.now() - (u?.lastSeen || 0);
 
-if (diff < 15000) {
-    status = u?.status || "online";
-} else if (diff < 30000) {
-    status = "away";
-} else {
+// Chỉ ép offline nếu mất heartbeat lâu
+if (diff > 30000) {
     status = "offline";
 }
 
