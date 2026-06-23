@@ -640,7 +640,6 @@ function setupPresence() {
 
     }, 5000);
 }
-}
   function renderPlayers(room) {
     const players = room.players || {};
     const entries = getPlayerEntries(players);
@@ -828,11 +827,14 @@ function setupPresence() {
 
     let status = u?.status || "offline";
 
-const diff = Date.now() - (u?.lastSeen || 0);
+if (u?.lastSeen) {
 
-// Chỉ ép offline nếu mất heartbeat lâu
-if (diff > 30000) {
-    status = "offline";
+    const diff = Date.now() - u.lastSeen;
+
+    if (diff > 30000) {
+        status = "offline";
+    }
+
 }
 
     return {
@@ -1087,8 +1089,11 @@ if (diff > 30000) {
 
   try {
     await db.ref(`users/${currentUser.uid}`).update({
-      status: "room"
-    });
+    status: "room",
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+});
+
+loadFriends();
 
     await ensureJoinedRoom();
     setNotice("Đã vào phòng.");
