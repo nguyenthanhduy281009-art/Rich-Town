@@ -622,14 +622,28 @@
   });
 
   // Heartbeat mỗi 5 giây
-  setInterval(() => {
-    if (currentRoom?.status === "playing") return;
+  let heartbeat = null;
 
-    userRef.update({
-        status: "room",
+function setupPresence() {
+
+    if (!currentUser) return;
+
+    const userRef = db.ref(`users/${currentUser.uid}`);
+
+    userRef.onDisconnect().update({
         lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
-}, 5000);
+
+    if (heartbeat) clearInterval(heartbeat);
+
+    heartbeat = setInterval(() => {
+
+        userRef.update({
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+
+    }, 5000);
+}
 }
   function renderPlayers(room) {
     const players = room.players || {};
@@ -816,8 +830,17 @@
             .filter(([uid]) => uid !== currentUser.uid)
             .map(([uid, u]) => {
 
-    const online =
-        Date.now() - (u?.lastSeen || 0) < 30000;
+    const diff = Date.now() - (u?.lastSeen || 0);
+
+let status;
+
+if (diff < 15000) {
+    status = u?.status || "online";
+} else if (diff < 30000) {
+    status = "away";
+} else {
+    status = "offline";
+}
 
     return {
         uid,
@@ -1101,6 +1124,20 @@
         alert("Không thể kick người chơi.");
     }
 };
+        window.addEventListener("beforeunload", () => {
+
+    if (!currentUser) return;
+
+    navigator.sendBeacon(
+        "",
+        ""
+    );
+
+    db.ref(`users/${currentUser.uid}`).update({
+        lastSeen: Date.now()
+    });
+
+});
 </script>
 </body>
 </html>
