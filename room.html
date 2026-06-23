@@ -845,7 +845,14 @@
             .filter(([uid]) => uid !== currentUser.uid)
             .map(([uid, u]) => {
 
-    let status = u?.status || "offline";
+    const OFFLINE_AFTER = 60000;
+
+const lastSeen = u?.lastSeen || 0;
+
+let status =
+    (Date.now() - lastSeen) < OFFLINE_AFTER
+        ? (u?.status || "online")
+        : "offline";
 
 
     return {
