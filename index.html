@@ -105,6 +105,29 @@
       box-shadow: 0 0 30px var(--gold);
     }
 
+    .bottom-nav {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    padding: 20px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: #111827; /* Màu nền trùng với giao diện */
+    border-top: 1px solid #374151;
+}
+
+.nav-item {
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+    transition: 0.3s;
+}
+
+.nav-item:hover {
+    color: #ffd54a;
+}
+
     .room-form {
       display: flex;
       gap: 10px;
@@ -167,44 +190,27 @@
 </head>
 <body>
   <header>
-    <div class="user-info">
-      <div class="avatar" id="avatar-char">RT</div>
-      <div>
-        <div id="username" style="font-weight: bold; font-size: 18px;">Đang tải...</div>
-        <div id="userid" style="font-size: 12px; color: #888;">ID: ---</div>
-        <div id="statusText" class="status">Đang kiểm tra đăng nhập...</div>
-      </div>
+  <div class="user-info">
+    <div class="avatar" id="avatar-char">RT</div>
+    <div>
+      <div id="username" style="font-weight: bold; font-size: 18px;">Đang tải...</div>
+      <div id="userid">ID: ---</div> <div id="statusText" class="status">Đang kiểm tra đăng nhập...</div>
     </div>
-    <button class="logout-btn" onclick="logout()">Đăng xuất</button>
-  </header>
+  </div>
+  <button class="logout-btn" onclick="logout()">Đăng xuất</button>
+</header>
 
-  <main>
-    <button class="play-btn" id="playBtn" onclick="createRoom()">🎲 CHƠI NGAY</button>
-
-    <div class="room-form">
-      <input
-        type="text"
-        id="roomCode"
-        class="room-input"
-        placeholder="Nhập mã phòng..."
-        maxlength="6"
-        autocomplete="off"
-      />
-      <button class="join-btn" id="joinBtn" onclick="joinRoom()">VÀO PHÒNG</button>
+<footer class="bottom-nav">
+    <div class="nav-item" onclick="openFriends()">
+        <span>👥 Bạn bè</span>
     </div>
-  </main>
-
-  <footer>
-    <div class="nav-item" onclick="window.location.href='friends.html'">
-      <span class="nav-icon">👥</span>
-      <span>Bạn bè</span>
+    <div class="nav-item" onclick="openShop()">
+        <span>🛍️ Cửa hàng</span>
     </div>
-
-    <div class="nav-item" onclick="window.location.href='shop.html'">
-      <span class="nav-icon">🛍️</span>
-      <span>Cửa hàng</span>
+    <div class="nav-item" onclick="openCharacter()">
+        <span>👤 Nhân vật</span>
     </div>
-  </footer>
+</footer>
 
   <script>
     const firebaseConfig = {
@@ -398,6 +404,9 @@
       });
     }
 
+    function openCharacter() {
+    window.location.href = "character.html";
+}
     
 
     roomInput.addEventListener("keydown", (e) => {
