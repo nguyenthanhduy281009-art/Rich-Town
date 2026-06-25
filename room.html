@@ -801,20 +801,15 @@
     });
 }
         function setupPresence() {
-
     if (!currentUser) return;
 
     const userRef = db.ref(`users/${currentUser.uid}`);
     const connectedRef = db.ref(".info/connected");
 
     connectedRef.on("value", snap => {
-
         if (snap.val() === true) {
-
-            userRef.onDisconnect().update({
-                status: "offline",
-                lastSeen: firebase.database.ServerValue.TIMESTAMP
-            });
+            // Chỉ xóa onDisconnect cũ hoặc để trống, không đặt status: "offline" ở đây
+            userRef.onDisconnect().cancel(); 
 
             userRef.update({
                 status: "room",
@@ -826,12 +821,10 @@
     if (heartbeat) clearInterval(heartbeat);
 
     heartbeat = setInterval(() => {
-
         userRef.update({
             status: "room",
             lastSeen: firebase.database.ServerValue.TIMESTAMP
         });
-
     }, 10000);
 }
 
