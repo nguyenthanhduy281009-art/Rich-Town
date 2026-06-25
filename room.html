@@ -927,20 +927,21 @@ let status =
             : 'pointer'
         };
     "
-                        ${item.status === "offline" || item.status === "playing" ? "disabled" : ""}
-                    >
+    onclick="inviteFriend('${item.uid}','${item.name}')"
+    ${item.status === "offline" || item.status === "playing" ? "disabled" : ""}
+>
 
-                        ${
-                            item.status === "playing"
-                            ? "ĐANG CHƠI"
+    ${
+        item.status === "playing"
+        ? "ĐANG CHƠI"
 
-                            : item.status === "offline"
-                            ? "OFFLINE"
+        : item.status === "offline"
+        ? "OFFLINE"
 
-                            : "MỜI"
-                        }
+        : "MỜI"
+    }
 
-                    </button>
+</button>
 
                 </div>
 
@@ -1066,6 +1067,26 @@ let status =
         location.replace("index.html");
     }
 }
+        window.inviteFriend = async function(uid, name) {
+
+    try {
+
+        await db.ref(`invites/${uid}`).push({
+            fromUid: currentUser.uid,
+            fromName: currentUserData?.name || "Người chơi",
+            roomId: roomId,
+            createdAt: Date.now()
+        });
+
+        alert(`Đã gửi lời mời cho ${name}`);
+
+    } catch(err) {
+
+        console.error(err);
+        alert("Không thể gửi lời mời");
+
+    }
+};
   auth.onAuthStateChanged(async user => {
   if (!user) {
     location.replace("auth.html");
@@ -1073,6 +1094,7 @@ let status =
   }
 
   currentUser = user;
+  watchInvites(user.uid);
 
 
   try {
@@ -1109,6 +1131,7 @@ setupPresence();
     location.replace("index.html");
   }
 });
+        
         window.kickPlayer = async function(uid) {
     if (!confirm("Bạn có chắc chắn muốn mời người này ra khỏi phòng?")) return;
     
