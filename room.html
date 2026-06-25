@@ -772,22 +772,25 @@
 
   function watchRoom() {
     roomRef.on("value", snap => {
-
+        // Kiểm tra: Nếu phòng bị xóa trên database
         if (!snap.exists()) {
-            alert("Phòng đã bị xóa!");
+            alert("Phòng đã bị xóa hoặc không còn tồn tại!");
             location.replace("index.html");
             return;
         }
 
         const room = snap.val() || {};
 
-        // KIỂM TRA BỊ KICK
-        if (
-            currentUser &&
-            room.players &&
-            !room.players[currentUser.uid]
-        ) {
-            alert("CÚT RA NGOÀI");
+        // Kiểm tra: Nếu phòng trống trơn không còn player (phòng ma)
+        if (!room.players || Object.keys(room.players).length === 0) {
+            db.ref(`rooms/${roomId}`).remove(); // Xóa sạch phòng rỗng
+            location.replace("index.html");
+            return;
+        }
+
+        // Kiểm tra bị kick
+        if (currentUser && room.players && !room.players[currentUser.uid]) {
+            alert("Bạn đã bị mời ra khỏi phòng.");
             location.replace("index.html");
             return;
         }
@@ -1033,24 +1036,24 @@ let status =
         const updates = {};
         const players = room.players || {};
         
-        // 1. Xóa người chơi hiện tại
+        // 1. Xóa bản thân khỏi danh sách người chơi
         updates[`rooms/${roomId}/players/${currentUser.uid}`] = null;
 
-        // 2. Kiểm tra xem còn ai không
+        // 2. Lấy danh sách còn lại
         const remainingUids = Object.keys(players).filter(id => id !== currentUser.uid);
 
         if (remainingUids.length === 0) {
-            // Nếu không còn ai -> XÓA PHÒNG HOÀN TOÀN
+            // Nếu không còn ai, xóa luôn cả phòng
             updates[`rooms/${roomId}`] = null;
         } else if (room.hostId === currentUser.uid) {
-            // Nếu còn người nhưng mình là host -> chuyển quyền cho người đầu tiên còn lại
+            // Nếu mình là host và còn người khác, chuyển quyền host
             updates[`rooms/${roomId}/hostId`] = remainingUids[0];
         }
 
-        // Thực hiện cập nhật tất cả trong 1 lần để tránh lỗi
+        // Thực hiện cập nhật
         await db.ref().update(updates);
         
-        // Reset trạng thái user
+        // Cập nhật trạng thái user về online
         await db.ref(`users/${currentUser.uid}`).update({
             status: "online",
             lastSeen: firebase.database.ServerValue.TIMESTAMP
@@ -1058,7 +1061,7 @@ let status =
 
         location.replace("index.html");
     } catch (e) {
-        console.error("Lỗi khi thoát:", e);
+        console.error("Lỗi khi rời phòng:", e);
         location.replace("index.html");
     }
 }
