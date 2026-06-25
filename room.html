@@ -1067,26 +1067,7 @@ let status =
         location.replace("index.html");
     }
 }
-        window.inviteFriend = async function(uid, name) {
-
-    try {
-
-        await db.ref(`invites/${uid}`).push({
-            fromUid: currentUser.uid,
-            fromName: currentUserData?.name || "Người chơi",
-            roomId: roomId,
-            createdAt: Date.now()
-        });
-
-        alert(`Đã gửi lời mời cho ${name}`);
-
-    } catch(err) {
-
-        console.error(err);
-        alert("Không thể gửi lời mời");
-
-    }
-};
+        
   auth.onAuthStateChanged(async user => {
   if (!user) {
     location.replace("auth.html");
@@ -1094,8 +1075,8 @@ let status =
   }
 
   currentUser = user;
-  watchInvites(user.uid);
-
+  await cleanOldInvites(user.uid);
+watchInvites(user.uid);
 
   try {
   } catch (e) {}
