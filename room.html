@@ -618,8 +618,14 @@
   // Heartbeat mỗi 5 giây
         
   function renderPlayers(room) {
+
     const players = room.players || {};
     const entries = getPlayerEntries(players);
+
+    if (!room.hostId && entries.length) {
+        room.hostId = entries[0][0];
+    }
+
     const hostId = room.hostId || "";
     const isHostMe = currentUser?.uid === hostId;
 
@@ -788,12 +794,17 @@
             return;
         }
 
-        // Kiểm tra bị kick
-        if (currentUser && room.players && !room.players[currentUser.uid]) {
-            alert("Bạn đã bị mời ra khỏi phòng.");
-            location.replace("index.html");
-            return;
-        }
+        if (
+    currentUser &&
+    currentRoom &&
+    room.players &&
+    !room.players[currentUser.uid]
+)
+{
+    alert("Bạn đã bị mời ra khỏi phòng.");
+    location.replace("index.html");
+    return;
+}
 
         renderRoom(room);
 
@@ -812,12 +823,10 @@
     connectedRef.on("value", snap => {
         if (snap.val() === true) {
             // Chỉ xóa onDisconnect cũ hoặc để trống, không đặt status: "offline" ở đây
-            userRef.onDisconnect().cancel(); 
-
-            userRef.update({
-                status: "room",
-                lastSeen: firebase.database.ServerValue.TIMESTAMP
-            });
+            userRef.onDisconnect().update({
+    status: "offline",
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+});
         }
     });
 
@@ -1074,6 +1083,7 @@ let status =
 
   currentUser = user;
   await cleanOldInvites(user.uid);
+  watchInvites(user.uid);
 
   try {
   } catch (e) {}
