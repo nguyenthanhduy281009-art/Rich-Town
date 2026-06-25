@@ -233,22 +233,28 @@
 
 
     auth.onAuthStateChanged(async (user) => {
-      try {
-        if (!user) {
-          statusTextEl.textContent = "Chuyển hướng sang đăng nhập...";
-          window.location.replace("auth.html");
-          return;
-        }
+  try {
+    if (!user) {
+      statusTextEl.textContent = "Chuyển hướng sang đăng nhập...";
+      window.location.replace("auth.html");
+      return;
+    }
 
-        statusTextEl.textContent = "Đã đăng nhập";
-        setupPresence(user.uid);
-        await loadUserData(user.uid);
+    statusTextEl.textContent = "Đã đăng nhập";
+    setupPresence(user.uid);
+    await loadUserData(user.uid);
 
-      } catch (err) {
-        console.error("Auth handler error:", err);
-        statusTextEl.textContent = "Có lỗi khi tải dữ liệu";
-      }
-    });
+    // THÊM ĐOẠN NÀY ĐỂ KÍCH HOẠT LẮNG NGHE LỜI MỜI
+    if (typeof watchInvites === 'function') {
+      watchInvites(user.uid);
+      console.log("Đã bắt đầu lắng nghe lời mời...");
+    }
+
+  } catch (err) {
+    console.error("Auth handler error:", err);
+    statusTextEl.textContent = "Có lỗi khi tải dữ liệu";
+  }
+});
 
     async function loadUserData(uid) {
       const snap = await db.ref(`users/${uid}`).once("value");
