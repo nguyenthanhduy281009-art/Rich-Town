@@ -623,8 +623,9 @@
     const entries = getPlayerEntries(players);
 
     if (!room.hostId && entries.length) {
-        room.hostId = entries[0][0];
-    }
+    db.ref(`rooms/${roomId}/hostId`).set(entries[0][0]);
+    room.hostId = entries[0][0];
+}
 
     const hostId = room.hostId || "";
     const isHostMe = currentUser?.uid === hostId;
@@ -833,11 +834,15 @@
     if (heartbeat) clearInterval(heartbeat);
 
     heartbeat = setInterval(() => {
+
+    if (!document.hidden) {
         userRef.update({
             status: "room",
             lastSeen: firebase.database.ServerValue.TIMESTAMP
         });
-    }, 10000);
+    }
+
+}, 10000);
 }
 
   function loadFriends() {
@@ -1128,7 +1133,10 @@ setupPresence();
         await db.ref(`rooms/${roomId}/players/${uid}`).remove();
         
         // Đưa trạng thái user về online (nếu cần)
-        await db.ref(`users/${uid}/status`).set("online");
+        await db.ref(`users/${uid}`).update({
+    status: "online",
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+});
         
         setNotice("Đã kick người chơi.");
     } catch (e) {
@@ -1136,6 +1144,18 @@ setupPresence();
         alert("Không thể kick người chơi.");
     }
 };
+        window.addEventListener("beforeunload", () => {
+
+    if (heartbeat) {
+        clearInterval(heartbeat);
+    }
+
+    if (roomRef) {
+        roomRef.off();
+    }
+
+    db.ref("users").off();
+});
 </script>
 </body>
 </html>
