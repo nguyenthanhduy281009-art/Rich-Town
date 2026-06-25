@@ -1,6 +1,4 @@
-// invites.js
-
-// 1. Hàm Mời bạn bè (Phải nằm trong window để HTML gọi được)
+// 1. Hàm Mời bạn bè
 window.inviteFriend = function(uid, name) {
     const sender = firebase.auth().currentUser;
     if (!sender) return;
@@ -13,14 +11,21 @@ window.inviteFriend = function(uid, name) {
     alert("Đã gửi lời mời đến " + name);
 };
 
-// 2. Hàm lắng nghe lời mời
+// 2. Hàm dọn dẹp lời mời cũ (Bổ sung hàm này)
+window.cleanOldInvites = async function(uid) {
+    try {
+        await firebase.database().ref(`users/${uid}/invites`).remove();
+    } catch (e) {
+        console.error("Lỗi dọn dẹp lời mời:", e);
+    }
+};
+
+// 3. Hàm lắng nghe lời mời
 function watchInvites(uid) {
-    console.log("Đang lắng nghe lời mời cho:", uid);
     firebase.database().ref(`users/${uid}/invites`).on('child_added', (snap) => {
         const invite = snap.val();
         if (!invite) return;
         
-        // Hiển thị popup
         const key = snap.key;
         if (document.getElementById('invite-popup')) return;
 
@@ -48,12 +53,11 @@ function watchInvites(uid) {
     });
 }
 
-// 3. Tự kích hoạt khi auth thay đổi
+// 4. Tự kích hoạt khi auth thay đổi
 firebase.auth().onAuthStateChanged((user) => {
     if (user) watchInvites(user.uid);
 });
 
-// Kích hoạt ngay nếu đã đăng nhập từ trước
 if (firebase.auth().currentUser) {
     watchInvites(firebase.auth().currentUser.uid);
 }
