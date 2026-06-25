@@ -126,6 +126,4 @@ try {
     console.error(err);
 
 }
-```
-
 };
