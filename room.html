@@ -665,7 +665,7 @@
 
         const badges = [];
         if (isHost) badges.push(`<div class="badge host">👑 Host</div>`);
-        if (ready) badges.push(`<div class="badge ready" style="${isHost ? "top:42px;" : ""}">✓ Sẵn sàng</div>`);
+        if (ready) badges.push(`<div class="badge ready" style="${isHost ? "top:42px;" : ""}">✓</div>`);
 
         const kickBtn = (isHostMe && !isMe)
             ? `<button class="kick-btn" onclick="kickPlayer('${uid}')">×</button>`
