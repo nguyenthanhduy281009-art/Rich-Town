@@ -622,9 +622,13 @@
     const players = room.players || {};
     const entries = getPlayerEntries(players);
 
-    if (!room.hostId && entries.length) {
-    db.ref(`rooms/${roomId}/hostId`).set(entries[0][0]);
-    room.hostId = entries[0][0];
+    if (!room.hostId && Object.keys(room.players || {}).length) {
+
+    const firstPlayer = Object.keys(room.players)[0];
+
+    db.ref(`rooms/${roomId}/hostId`).set(firstPlayer);
+
+    room.hostId = firstPlayer;
 }
 
     const hostId = room.hostId || "";
@@ -861,105 +865,36 @@
                         Chưa có bạn bè nào.
                     </div>
                 `;
-
                 return;
             }
 
             const list = await Promise.all(
-    friendIds.map(async uid => {
 
-        const userSnap = await db.ref(`users/${uid}`).once("value");
-        const u = userSnap.val() || {};
+                friendIds.map(async uid => {
 
-        ...
-    })
-);
-            const users = usersSnap.val() || {};
+                    const userSnap = await db.ref(`users/${uid}`).once("value");
+                    const u = userSnap.val() || {};
 
-            const list = friendIds.map(uid => {
+                    const OFFLINE_AFTER = 60000;
 
-                const u = users[uid] || {};
+                    const lastSeen = u.lastSeen || 0;
 
-                const OFFLINE_AFTER = 60000;
+                    const status =
+                        (Date.now() - lastSeen) < OFFLINE_AFTER
+                            ? (u.status || "online")
+                            : "offline";
 
-                const lastSeen = u.lastSeen || 0;
+                    return {
+                        uid,
+                        name: u.name || "Người chơi",
+                        status
+                    };
 
-                const status =
-                    (Date.now() - lastSeen) < OFFLINE_AFTER
-                        ? (u.status || "online")
-                        : "offline";
+                })
 
-                return {
-                    uid,
-                    name: u.name || "Người chơi",
-                    status
-                };
+            );
 
-            });
-
-            el.friendsList.innerHTML = list.map(item => `
-
-                <div class="friend-item">
-
-                    <div class="friend-left">
-
-                        <div class="friend-avatar">
-                            ${escapeHtml(initials(item.name))}
-                        </div>
-
-                        <div class="friend-meta">
-
-                            <div class="friend-name">
-                                ${escapeHtml(item.name)}
-                            </div>
-
-                            <div class="friend-sub">
-
-                                ${
-                                    item.status === "online"
-                                    ? "🟢 Online"
-
-                                    : item.status === "room"
-                                    ? "🏠 Trong phòng"
-
-                                    : item.status === "playing"
-                                    ? "🎮 Đang chơi"
-
-                                    : "⚫ Offline"
-                                }
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    <button
-                        class="invite-btn"
-                        onclick="inviteFriend('${item.uid}','${item.name}')"
-                        ${
-                            item.status === "offline" ||
-                            item.status === "playing"
-                            ? "disabled"
-                            : ""
-                        }
-                    >
-
-                        ${
-                            item.status === "playing"
-                            ? "ĐANG CHƠI"
-
-                            : item.status === "offline"
-                            ? "OFFLINE"
-
-                            : "MỜI"
-                        }
-
-                    </button>
-
-                </div>
-
-            `).join("");
+            renderFriendList(list);
 
         } catch (e) {
 
@@ -975,7 +910,6 @@
     });
 
 }
-
         function renderFriendList(list) {
 
     el.friendsList.innerHTML = list.map(item => `
@@ -1223,7 +1157,7 @@ setupPresence();
         roomRef.off();
     }
 
-    db.ref("users").off();
+    db.ref(`friends/${currentUser.uid}`).off();
 });
 </script>
 </body>
