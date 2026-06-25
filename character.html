@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Character System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="character-page">
+    <aside class="left-panel">
+        <h3>Nhân vật của bạn</h3>
+        <div id="charList" class="char-list"></div>
+    </aside>
+
+    <main class="center-panel">
+        <div class="avatar-box" id="avatarBox">
+            <div class="avatar-circle" id="avatarBody">
+                <div class="arm arm-left"></div>
+                <div class="arm arm-right"></div>
+            </div>
+            <div class="pattern-overlay" id="avatarPattern"></div>
+        </div>
+        <h1 id="charName">Chọn nhân vật</h1>
+        <p id="charDesc">Mô tả chi tiết sẽ hiển thị tại đây.</p>
+    </main>
+
+    <aside class="right-panel">
+        <h3>Chỉ số</h3>
+        <div id="statsContainer"></div>
+    </aside>
+
+    <footer class="bottom-bar">
+        <button class="btn-action" onclick="alert('Đã chọn nhân vật!')">Chọn nhân vật</button>
+        <button class="btn-action">Nâng cấp</button>
+        <button class="btn-back" onclick="window.location.href='index.html'">Quay lại</button>
+    </footer>
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
