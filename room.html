@@ -847,131 +847,128 @@
 
   function loadFriends() {
 
-    db.ref("users").on("value", snap => {
+    db.ref(`users/${currentUser.uid}/friends`).on("value", async friendSnap => {
 
         try {
 
-            const users = snap.val() || {};
+            const friends = friendSnap.val() || {};
+            const friendIds = Object.keys(friends);
 
-            const list = Object.entries(users)
-            .filter(([uid]) => uid !== currentUser.uid)
-            .map(([uid, u]) => {
-
-    const OFFLINE_AFTER = 60000;
-
-const lastSeen = u?.lastSeen || 0;
-
-let status =
-    (Date.now() - lastSeen) < OFFLINE_AFTER
-        ? (u?.status || "online")
-        : "offline";
-
-
-    return {
-    uid,
-    name: u?.name || "Người chơi",
-    status
-};
-
-})
-            .slice(0, 12);
-
-            if (!list.length) {
-
-                el.friendsList.innerHTML =
-                `<div class="loading">
-                    Chưa có ai khác trong hệ thống.
-                </div>`;
-
+            if (!friendIds.length) {
+                el.friendsList.innerHTML = `
+                    <div class="loading">
+                        Bạn chưa có bạn bè nào.
+                    </div>
+                `;
                 return;
             }
 
-            el.friendsList.innerHTML = list.map(item => `
+            const usersSnap = await db.ref("users").once("value");
+            const users = usersSnap.val() || {};
 
-                <div class="friend-item">
+            const list = friendIds.map(uid => {
 
-                    <div class="friend-left">
+                const u = users[uid] || {};
 
-                        <div class="friend-avatar">
-                            ${escapeHtml(initials(item.name))}
-                        </div>
+                const OFFLINE_AFTER = 60000;
 
-                        <div class="friend-meta">
+                const lastSeen = u.lastSeen || 0;
 
-                            <div class="friend-name">
-                                ${escapeHtml(item.name)}
-                            </div>
+                const status =
+                    (Date.now() - lastSeen) < OFFLINE_AFTER
+                        ? (u.status || "online")
+                        : "offline";
 
-                            <div class="friend-sub">
+                return {
+                    uid,
+                    name: u.name || "Người chơi",
+                    status
+                };
 
-                                ${
-                                    item.status === "online"
-                                    ? "🟢 Online"
+            });
 
-                                    : item.status === "room"
-                                    ? "🏠 Trong phòng"
-
-                                    : item.status === "playing"
-                                    ? "🎮 Đang chơi"
-
-                                    : "⚫ Offline"
-                                }
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    <button
-    class="invite-btn"
-    style="
-        opacity:${
-            item.status === 'offline' ||
-            item.status === 'playing'
-            ? '.5'
-            : '1'
-        };
-        cursor:${
-            item.status === 'offline' ||
-            item.status === 'playing'
-            ? 'not-allowed'
-            : 'pointer'
-        };
-    "
-    onclick="inviteFriend('${item.uid}','${item.name}')"
-    ${item.status === "offline" || item.status === "playing" ? "disabled" : ""}
->
-
-    ${
-        item.status === "playing"
-        ? "ĐANG CHƠI"
-
-        : item.status === "offline"
-        ? "OFFLINE"
-
-        : "MỜI"
-    }
-
-</button>
-
-                </div>
-
-            `).join("");
+            renderFriendList(list);
 
         } catch (e) {
 
             console.error(e);
 
-            el.friendsList.innerHTML =
-            `<div class="loading">
-                Không tải được danh sách bạn bè.
-            </div>`;
+            el.friendsList.innerHTML = `
+                <div class="loading">
+                    Không tải được danh sách bạn bè.
+                </div>
+            `;
         }
 
     });
+
 }
 
+        function renderFriendList(list) {
+
+    el.friendsList.innerHTML = list.map(item => `
+
+        <div class="friend-item">
+
+            <div class="friend-left">
+
+                <div class="friend-avatar">
+                    ${escapeHtml(initials(item.name))}
+                </div>
+
+                <div class="friend-meta">
+
+                    <div class="friend-name">
+                        ${escapeHtml(item.name)}
+                    </div>
+
+                    <div class="friend-sub">
+
+                        ${
+                            item.status === "online"
+                            ? "🟢 Online"
+
+                            : item.status === "room"
+                            ? "🏠 Trong phòng"
+
+                            : item.status === "playing"
+                            ? "🎮 Đang chơi"
+
+                            : "⚫ Offline"
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <button
+                class="invite-btn"
+                onclick="inviteFriend('${item.uid}','${item.name}')"
+                ${
+                    item.status === "offline" ||
+                    item.status === "playing"
+                    ? "disabled"
+                    : ""
+                }
+            >
+                ${
+                    item.status === "playing"
+                    ? "ĐANG CHƠI"
+
+                    : item.status === "offline"
+                    ? "OFFLINE"
+
+                    : "MỜI"
+                }
+            </button>
+
+        </div>
+
+    `).join("");
+
+}
 
   window.toggleReady = async function() {
     if (!currentUser || !currentRoom) return;
