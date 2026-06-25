@@ -827,9 +827,7 @@
 
     connectedRef.on("value", snap => {
         if (snap.val() === true) {
-            // Chỉ xóa onDisconnect cũ hoặc để trống, không đặt status: "offline" ở đây
             userRef.onDisconnect().update({
-    status: "offline",
     lastSeen: firebase.database.ServerValue.TIMESTAMP
 });
         }
@@ -851,7 +849,7 @@
 
   function loadFriends() {
 
-    db.ref(`friends/${currentUser.uid}`).on("value", async snap => {
+    db.ref(`friends/${currentUser.uid}`).on("value", snap => {
 
         try {
 
@@ -868,21 +866,25 @@
                 return;
             }
 
-            const list = await Promise.all(
+            db.ref("users").on("value", usersSnap => {
 
-                friendIds.map(async uid => {
+                const users = usersSnap.val() || {};
 
-                    const userSnap = await db.ref(`users/${uid}`).once("value");
-                    const u = userSnap.val() || {};
+                const list = friendIds.map(uid => {
+
+                    const u = users[uid] || {};
 
                     const OFFLINE_AFTER = 60000;
 
                     const lastSeen = u.lastSeen || 0;
 
-                    const status =
-                        (Date.now() - lastSeen) < OFFLINE_AFTER
-                            ? (u.status || "online")
-                            : "offline";
+                    let status = u.status || "online";
+
+if (
+    Date.now() - lastSeen > OFFLINE_AFTER
+) {
+    status = "offline";
+}
 
                     return {
                         uid,
@@ -890,11 +892,11 @@
                         status
                     };
 
-                })
+                });
 
-            );
+                renderFriendList(list);
 
-            renderFriendList(list);
+            });
 
         } catch (e) {
 
@@ -1112,7 +1114,7 @@
 
 try {
     await db.ref(`users/${currentUser.uid}`).update({
-    status: "room",
+    status: roomId ? "room" : "online",
     lastSeen: firebase.database.ServerValue.TIMESTAMP
 });
 
