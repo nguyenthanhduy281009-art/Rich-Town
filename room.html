@@ -849,6 +849,8 @@
 
   function loadFriends() {
 
+      let usersListenerLoaded = false;
+
     db.ref(`friends/${currentUser.uid}`).on("value", snap => {
 
         try {
@@ -1159,7 +1161,9 @@ setupPresence();
         roomRef.off();
     }
 
+    if(currentUser){
     db.ref(`friends/${currentUser.uid}`).off();
+}
 });
 </script>
 </body>
