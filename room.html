@@ -847,23 +847,33 @@
 
   function loadFriends() {
 
-    db.ref(`users/${currentUser.uid}/friends`).on("value", async friendSnap => {
+    db.ref(`friends/${currentUser.uid}`).on("value", async snap => {
 
         try {
 
-            const friends = friendSnap.val() || {};
+            const friends = snap.val() || {};
             const friendIds = Object.keys(friends);
 
             if (!friendIds.length) {
+
                 el.friendsList.innerHTML = `
                     <div class="loading">
-                        Bạn chưa có bạn bè nào.
+                        Chưa có bạn bè nào.
                     </div>
                 `;
+
                 return;
             }
 
-            const usersSnap = await db.ref("users").once("value");
+            const list = await Promise.all(
+    friendIds.map(async uid => {
+
+        const userSnap = await db.ref(`users/${uid}`).once("value");
+        const u = userSnap.val() || {};
+
+        ...
+    })
+);
             const users = usersSnap.val() || {};
 
             const list = friendIds.map(uid => {
@@ -887,7 +897,69 @@
 
             });
 
-            renderFriendList(list);
+            el.friendsList.innerHTML = list.map(item => `
+
+                <div class="friend-item">
+
+                    <div class="friend-left">
+
+                        <div class="friend-avatar">
+                            ${escapeHtml(initials(item.name))}
+                        </div>
+
+                        <div class="friend-meta">
+
+                            <div class="friend-name">
+                                ${escapeHtml(item.name)}
+                            </div>
+
+                            <div class="friend-sub">
+
+                                ${
+                                    item.status === "online"
+                                    ? "🟢 Online"
+
+                                    : item.status === "room"
+                                    ? "🏠 Trong phòng"
+
+                                    : item.status === "playing"
+                                    ? "🎮 Đang chơi"
+
+                                    : "⚫ Offline"
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        class="invite-btn"
+                        onclick="inviteFriend('${item.uid}','${item.name}')"
+                        ${
+                            item.status === "offline" ||
+                            item.status === "playing"
+                            ? "disabled"
+                            : ""
+                        }
+                    >
+
+                        ${
+                            item.status === "playing"
+                            ? "ĐANG CHƠI"
+
+                            : item.status === "offline"
+                            ? "OFFLINE"
+
+                            : "MỜI"
+                        }
+
+                    </button>
+
+                </div>
+
+            `).join("");
 
         } catch (e) {
 
