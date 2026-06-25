@@ -1,58 +1,45 @@
-const INVITE_EXPIRE_TIME = 60000;
+// invites.js
+(function() {
+    // Hàm hiển thị Popup
+    function showInvitePopup(inviteData, key) {
+        if (document.getElementById('invite-popup')) return; // Không hiển thị đè
 
-window.inviteFriend = async function(uid, name) {
-    if (!currentUser) return;
-    try {
-        const inviteData = {
-            fromUid: currentUser.uid,
-            fromName: currentUserData?.name || currentUser.displayName || "Người chơi",
-            roomId: roomId,
-            createdAt: Date.now()
+        const div = document.createElement('div');
+        div.id = 'invite-popup';
+        div.style = "position:fixed; bottom:20px; right:20px; background:#111827; padding:20px; border-radius:15px; border:1px solid #ffd54a; z-index:99999; box-shadow:0 10px 30px rgba(0,0,0,0.5); color:white; min-width:250px;";
+        
+        div.innerHTML = `
+            <div style="margin-bottom:10px; font-weight:bold;">Lời mời chơi game!</div>
+            <div style="margin-bottom:15px; font-size:14px;">Phòng: <b>${inviteData.roomId}</b></div>
+            <div style="display:flex; gap:10px;">
+                <button id="join-btn" style="background:#34d399; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">Vào ngay</button>
+                <button id="close-btn" style="background:#fb7185; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">Bỏ qua</button>
+            </div>
+        `;
+
+        document.body.appendChild(div);
+
+        document.getElementById('join-btn').onclick = () => {
+            const user = firebase.auth().currentUser;
+            if(user) firebase.database().ref(`users/${user.uid}/invites/${key}`).remove();
+            location.href = `room.html?id=${inviteData.roomId}`;
         };
-        await db.ref(`invites/${uid}`).push(inviteData);
-        alert(`Đã gửi lời mời cho ${name}`);
-    } catch (err) {
-        console.error("Invite error:", err);
-        alert("Không gửi được lời mời");
-    }
-};
 
-window.watchInvites = function(uid) {
-    if (!uid) return;
-    const invitesRef = db.ref(`invites/${uid}`);
-    invitesRef.off();
-    invitesRef.on("child_added", async (snap) => {
-        const invite = snap.val();
-        const inviteKey = snap.key;
-        if (!invite) return;
-        if (invite.createdAt && Date.now() - invite.createdAt > INVITE_EXPIRE_TIME) {
-            invitesRef.child(inviteKey).remove();
-            return;
-        }
-        const accepted = confirm(`${invite.fromName} mời bạn vào phòng ${invite.roomId}\n\nBạn có muốn tham gia không?`);
-        await invitesRef.child(inviteKey).remove();
-        if (accepted) {
-            window.location.href = `room.html?id=${invite.roomId}`;
+        document.getElementById('close-btn').onclick = () => {
+            const user = firebase.auth().currentUser;
+            if(user) firebase.database().ref(`users/${user.uid}/invites/${key}`).remove();
+            div.remove();
+        };
+    }
+
+    // Tự động lắng nghe khi auth thay đổi
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            console.log("Invites listener: Đã kết nối, đang chờ lời mời...");
+            firebase.database().ref(`users/${user.uid}/invites`).on('child_added', (snap) => {
+                const invite = snap.val();
+                if (invite) showInvitePopup(invite, snap.key);
+            });
         }
     });
-};
-
-window.cleanOldInvites = async function(uid) {
-    if (!uid) return;
-    try {
-        const snap = await db.ref(`invites/${uid}`).once("value");
-        const invites = snap.val();
-        if (!invites) return;
-        const updates = {};
-        Object.entries(invites).forEach(([key, invite]) => {
-            if (invite.createdAt && Date.now() - invite.createdAt > INVITE_EXPIRE_TIME) {
-                updates[key] = null;
-            }
-        });
-        if (Object.keys(updates).length) {
-            await db.ref(`invites/${uid}`).update(updates);
-        }
-    } catch (err) {
-        console.error(err);
-    }
-};
+})();
