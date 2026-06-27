@@ -1,248 +1,41 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nhân vật</title>
-
-    <link rel="stylesheet" href="css/character.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div class="character-page">
-
-    <!-- HEADER -->
-    <header class="page-header">
-
-        <div class="header-left">
-            <h1>Nhân vật</h1>
-            <p>Quản lý nhân vật của bạn</p>
+<div class="game-container">
+    <aside class="col-left">
+        <div class="selection-row">
+            <select id="charSelect"><option>Character</option></select>
+            <select id="skinSelect"><option>Skin</option></select>
         </div>
-
-    </header>
-
-    <!-- CONTENT -->
-    <main class="character-container">
-
-        <!-- ===========================
-             DANH SÁCH NHÂN VẬT
-        ============================ -->
-
-        <aside class="character-list">
-
-            <div class="panel-title">
-                Nhân vật sở hữu
-            </div>
-
-            <div id="characterList">
-
-                <!-- JS Render -->
-
-            </div>
-
-        </aside>
-
-        <!-- ===========================
-                AVATAR
-        ============================ -->
-
-        <section class="character-preview">
-
-            <div class="preview-card">
-
-                <!-- Badge -->
-
-                <div class="preview-badge">
-
-                    <div class="level-badge">
-
-                        Lv.1
-
-                    </div>
-
-                    <div class="rarity-badge">
-
-                        COMMON
-
-                    </div>
-
-                </div>
-
-                <!-- Avatar -->
-
-                <div
-                    class="preview-avatar"
-                    id="previewAvatar">
-
-                </div>
-
-                <!-- Tabs -->
-
-                <div class="preview-tabs">
-
-                    <button class="tab active">
-                        Thông tin
-                    </button>
-
-                    <button class="tab">
-                        Skin
-                    </button>
-
-                    <button class="tab">
-                        Kỹ năng
-                    </button>
-
-                </div>
-
-            </div>
-
-        </section>
-
-        <!-- ===========================
-                THÔNG TIN
-        ============================ -->
-
-        <aside class="character-info">
-
-            <div class="panel-title">
-                Thông tin nhân vật
-            </div>
-
-            <!-- HP -->
-
-            <div class="stat">
-
-                <div class="stat-header">
-
-                    <span>❤️ Máu</span>
-
-                    <span id="hpValue">
-                        100
-                    </span>
-
-                </div>
-
-                <div class="progress">
-
-                    <div
-                        class="progress-fill hp"
-                        id="hpBar">
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <!-- SPEED -->
-
-            <div class="stat">
-
-                <div class="stat-header">
-
-                    <span>⚡ Tốc độ</span>
-
-                    <span id="speedValue">
-                        5
-                    </span>
-
-                </div>
-
-                <div class="progress">
-
-                    <div
-                        class="progress-fill speed"
-                        id="speedBar">
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <!-- CRIT -->
-
-            <div class="stat">
-
-                <div class="stat-header">
-
-                    <span>🎯 Tỷ lệ chí mạng</span>
-
-                    <span id="critValue">
-                        5%
-                    </span>
-
-                </div>
-
-                <div class="progress">
-
-                    <div
-                        class="progress-fill crit"
-                        id="critBar">
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <!-- SUB STATS -->
-
-            <div class="sub-title">
-
-                Chỉ số phụ
-
-            </div>
-
-            <div
-                id="subStats"
-                class="sub-list">
-
-                <div class="sub-item">
-
-                    Không có chỉ số phụ.
-
-                </div>
-
-            </div>
-
-        </aside>
-
+        <div class="char-list" id="charList"></div>
+    </aside>
+
+    <main class="col-center">
+        <div class="avatar-display">
+            <div class="avatar-circle" id="charAvatar"></div>
+        </div>
+        <h1 id="charName">Name</h1>
+        <div class="level-badge">LVL <span id="charLevel">1</span></div>
     </main>
 
-    <!-- FOOTER -->
+    <aside class="col-right">
+        <div class="stats-panel">
+            <h2>Attributes</h2>
+            <div id="statsContainer"></div>
+            <h3>Sub-stats</h3>
+            <div id="subStatsContainer" class="sub-stats"></div>
+        </div>
+    </aside>
 
-    <footer class="character-footer">
-
-        <button
-            class="game-btn primary"
-            id="selectCharacter">
-
-            Chọn nhân vật
-
-        </button>
-
-        <button
-            class="game-btn warning"
-            id="upgradeCharacter">
-
-            Nâng cấp
-
-        </button>
-
-        <button
-            class="game-btn secondary"
-            id="backButton">
-
-            Quay lại
-
-        </button>
-
+    <footer class="footer-actions">
+        <button class="btn-main">Select Character</button>
+        <button class="btn-main">Upgrade</button>
+        <button class="btn-main back">Back</button>
     </footer>
-
 </div>
-
-<script type="module" src="js/character.js"></script>
-
+<script type="module" src="main.js"></script>
 </body>
 </html>
