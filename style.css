@@ -1,0 +1,15 @@
+:root { --bg: #0f0f12; --card: rgba(30, 30, 40, 0.8); --accent: #7d5fff; }
+
+body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; }
+.game-container { display: grid; grid-template-columns: 300px 1fr 350px; height: 90vh; padding: 20px; gap: 20px; }
+
+/* Glass Cards */
+.col-left, .col-center, .col-right { background: var(--card); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); }
+
+/* Progress Bar */
+.stat-bar { background: #333; height: 10px; border-radius: 5px; margin: 10px 0; overflow: hidden; }
+.progress { height: 100%; background: var(--accent); transition: width 0.5s ease; }
+
+/* Buttons */
+.btn-main { padding: 15px 30px; background: linear-gradient(45deg, #7d5fff, #574b90); border: none; border-radius: 10px; color: white; cursor: pointer; transition: transform 0.2s; }
+.btn-main:active { transform: scale(0.95); }
