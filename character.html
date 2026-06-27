@@ -3,78 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Character</title>
+    <title>Nhân vật</title>
 
-    <link rel="stylesheet" href="character.css">
+    <link rel="stylesheet" href="css/character.css">
 </head>
 <body>
 
 <div class="character-page">
 
-    <!-- ===== Tiêu đề ===== -->
+    <!-- HEADER -->
     <header class="page-header">
-        <h1>Nhân vật</h1>
+
+        <div class="header-left">
+            <h1>Nhân vật</h1>
+            <p>Quản lý nhân vật của bạn</p>
+        </div>
+
     </header>
 
-    <!-- ===== Nội dung ===== -->
+    <!-- CONTENT -->
     <main class="character-container">
 
-        <!-- =========================
+        <!-- ===========================
              DANH SÁCH NHÂN VẬT
-        ========================== -->
+        ============================ -->
+
         <aside class="character-list">
 
             <div class="panel-title">
-                Nhân vật
+                Nhân vật sở hữu
             </div>
 
             <div id="characterList">
 
-                <!-- Character Item -->
-                <div class="character-item active">
-
-                    <div class="character-avatar-small">
-
-                    </div>
-
-                    <div class="character-name">
-                        Hunter
-                    </div>
-
-                    <div class="selected-icon">
-                        ✓
-                    </div>
-
-                </div>
+                <!-- JS Render -->
 
             </div>
 
         </aside>
 
-        <!-- =========================
-              PREVIEW
-        ========================== -->
+        <!-- ===========================
+                AVATAR
+        ============================ -->
+
         <section class="character-preview">
 
             <div class="preview-card">
 
                 <!-- Badge -->
+
                 <div class="preview-badge">
 
-                    <span id="characterLevel">
-                        Lv.1
-                    </span>
+                    <div class="level-badge">
 
-                    <span id="characterRarity">
+                        Lv.1
+
+                    </div>
+
+                    <div class="rarity-badge">
+
                         COMMON
-                    </span>
+
+                    </div>
 
                 </div>
 
                 <!-- Avatar -->
-                <div class="preview-avatar" id="previewAvatar">
 
-                    <!-- Sau này JS sẽ render skin ở đây -->
+                <div
+                    class="preview-avatar"
+                    id="previewAvatar">
+
+                </div>
+
+                <!-- Tabs -->
+
+                <div class="preview-tabs">
+
+                    <button class="tab active">
+                        Thông tin
+                    </button>
+
+                    <button class="tab">
+                        Skin
+                    </button>
+
+                    <button class="tab">
+                        Kỹ năng
+                    </button>
 
                 </div>
 
@@ -82,67 +98,110 @@
 
         </section>
 
-        <!-- =========================
-               CHỈ SỐ
-        ========================== -->
-        <aside class="character-stats">
+        <!-- ===========================
+                THÔNG TIN
+        ============================ -->
+
+        <aside class="character-info">
 
             <div class="panel-title">
-                Chỉ số
+                Thông tin nhân vật
             </div>
 
             <!-- HP -->
+
             <div class="stat">
 
                 <div class="stat-header">
+
                     <span>❤️ Máu</span>
-                    <span id="hpValue">100</span>
+
+                    <span id="hpValue">
+                        100
+                    </span>
+
                 </div>
 
                 <div class="progress">
-                    <div class="progress-fill" id="hpBar"></div>
+
+                    <div
+                        class="progress-fill hp"
+                        id="hpBar">
+
+                    </div>
+
                 </div>
 
             </div>
 
-            <!-- Speed -->
+            <!-- SPEED -->
+
             <div class="stat">
 
                 <div class="stat-header">
+
                     <span>⚡ Tốc độ</span>
-                    <span id="speedValue">5</span>
+
+                    <span id="speedValue">
+                        5
+                    </span>
+
                 </div>
 
                 <div class="progress">
-                    <div class="progress-fill" id="speedBar"></div>
+
+                    <div
+                        class="progress-fill speed"
+                        id="speedBar">
+
+                    </div>
+
                 </div>
 
             </div>
 
-            <!-- Crit -->
+            <!-- CRIT -->
+
             <div class="stat">
 
                 <div class="stat-header">
+
                     <span>🎯 Tỷ lệ chí mạng</span>
-                    <span id="critValue">10%</span>
+
+                    <span id="critValue">
+                        5%
+                    </span>
+
                 </div>
 
                 <div class="progress">
-                    <div class="progress-fill" id="critBar"></div>
+
+                    <div
+                        class="progress-fill crit"
+                        id="critBar">
+
+                    </div>
+
                 </div>
 
             </div>
 
-            <!-- Chỉ số phụ -->
+            <!-- SUB STATS -->
 
-            <div class="sub-stat-title">
+            <div class="sub-title">
+
                 Chỉ số phụ
+
             </div>
 
-            <div id="subStats">
+            <div
+                id="subStats"
+                class="sub-list">
 
-                <div class="sub-stat">
+                <div class="sub-item">
+
                     Không có chỉ số phụ.
+
                 </div>
 
             </div>
@@ -151,29 +210,39 @@
 
     </main>
 
-    <!-- =========================
-             FOOTER
-    ========================== -->
+    <!-- FOOTER -->
 
     <footer class="character-footer">
 
-        <button id="selectCharacterBtn">
+        <button
+            class="game-btn primary"
+            id="selectCharacter">
+
             Chọn nhân vật
+
         </button>
 
-        <button id="upgradeCharacterBtn">
+        <button
+            class="game-btn warning"
+            id="upgradeCharacter">
+
             Nâng cấp
+
         </button>
 
-        <button id="backBtn">
+        <button
+            class="game-btn secondary"
+            id="backButton">
+
             Quay lại
+
         </button>
 
     </footer>
 
 </div>
 
-<script type="module" src="character.js"></script>
+<script type="module" src="js/character.js"></script>
 
 </body>
 </html>
