@@ -1,27 +1,37 @@
-:root { --bg: #0a0a0c; --glass: rgba(255, 255, 255, 0.05); }
-
-body { 
-    background: radial-gradient(circle at center, #1b1b2f 0%, #0a0a0c 100%);
-    color: white; font-family: 'Inter', sans-serif; height: 100vh; margin: 0;
+body {
+    background-color: #0d0e12;
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
 
-.game-ui { 
-    display: grid; grid-template-columns: 300px 1fr 350px; 
-    gap: 20px; padding: 20px; height: calc(100vh - 100px); 
+.game-container {
+    display: grid;
+    grid-template-columns: 250px 1fr 300px; /* Chia 3 cột chuẩn */
+    width: 90%;
+    height: 80vh;
+    background: rgba(255, 255, 255, 0.05); /* Glass Effect */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 20px;
+    gap: 20px;
 }
 
-.panel { 
-    background: var(--glass); backdrop-filter: blur(20px); 
-    border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 25px;
+.panel {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Character Styling (Mickey Shape) */
-.character-mickey { position: relative; width: 150px; height: 150px; margin: 50px auto; }
-.head { width: 100%; height: 100%; background: var(--color); border-radius: 50%; box-shadow: 0 0 30px var(--color-glow); }
-.ear { position: absolute; top: -20px; width: 60px; height: 60px; background: var(--color); border-radius: 50%; }
-.left { left: -10px; } .right { right: 100px; }
-
-/* Progress Bars */
-.stat-row { margin: 15px 0; }
-.progress-bg { height: 8px; background: #222; border-radius: 4px; overflow: hidden; }
-.progress-fill { height: 100%; background: #3498db; transition: width 0.6s ease; }
+.avatar-circle {
+    width: 150px;
+    height: 150px;
+    background: #6c5ce7;
+    border-radius: 50%;
+    margin: 20px auto;
+}
