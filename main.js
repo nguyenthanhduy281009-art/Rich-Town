@@ -1,20 +1,19 @@
-import { allCharacters } from './characters/index.js';
+import { characters } from './data.js';
 
-function updateUI(char) {
-    // 1. Update Preview (Nhân vật)
-    const head = document.querySelector('.head');
-    const ears = document.querySelectorAll('.ear');
-    head.style.setProperty('--color', char.avatarColor);
-    head.style.setProperty('--color-glow', char.avatarColor + '80');
-    ears.forEach(e => e.style.backgroundColor = char.avatarColor);
+let currentView = 'hero'; // 'hero' hoặc 'skin'
+let selectedHero = characters[0];
 
-    // 2. Update Stats
-    document.getElementById('charName').innerText = char.name;
-    const statsContainer = document.getElementById('statsDisplay');
-    statsContainer.innerHTML = Object.entries(char.stats).map(([k, v]) => `
-        <div class="stat-row">
-            <span>${k.toUpperCase()}</span>
-            <div class="progress-bg"><div class="progress-fill" style="width:${v}%"></div></div>
-        </div>
-    `).join('');
+// Render danh sách (Tướng hoặc Trang phục)
+function renderList() {
+    const list = document.querySelector('.col-left');
+    list.innerHTML = currentView === 'hero' 
+        ? characters.map(h => `<div class="item ${selectedHero.id === h.id ? 'active' : ''}">${h.name}</div>`).join('')
+        : selectedHero.skins.map(s => `<div class="item">${s}</div>`).join('');
 }
+
+// Xử lý click
+document.querySelector('.col-left').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('item')) return;
+    // Update logic: Chọn tướng hoặc chọn skin tại đây
+    renderUI();
+});
