@@ -1,51 +1,250 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Rich Town | Nhân vật</title>
+
+    <link rel="stylesheet" href="character.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://kit.fontawesome.com/4e8c731652.js" crossorigin="anonymous"></script>
 </head>
+
 <body>
-    <div class="game-wrapper">
-        <header class="top-nav">
-            <h2 class="title">NHÂN VẬT</h2>
-            <button class="back-btn">Quay lại</button>
-        </header>
 
-        <main class="main-screen">
-            <aside class="hero-list">
-                <div class="hero-item active">Tanker</div>
-                <div class="hero-item">Hunter</div>
-                <div class="hero-item">Mage</div>
-                <div class="hero-item">Assassin</div>
-            </aside>
+<div class="character-page">
 
-            <section class="hero-preview">
-                <div class="avatar-glow">
-                    <div class="avatar-circle"></div>
-                </div>
-                <h1 class="hero-name">Tanker</h1>
-                <p class="hero-lv">LEVEL 10</p>
-                <div class="action-buttons">
-                    <button class="btn-primary">Chọn</button>
-                    <button class="btn-secondary">Nâng cấp</button>
-                </div>
-            </section>
+    <!-- HEADER -->
 
-            <aside class="hero-stats">
-                <h3>Chỉ số</h3>
-                <div class="stat-group">
-                    <label>HP</label>
-                    <div class="bar-bg"><div class="bar-fill" style="width: 90%;"></div></div>
+    <header class="top-bar">
+
+        <button class="back-btn">
+            <i class="fa-solid fa-arrow-left"></i>
+            Quay lại
+        </button>
+
+        <h1>NHÂN VẬT</h1>
+
+        <div class="top-space"></div>
+
+    </header>
+
+    <!-- CONTENT -->
+
+    <main class="character-layout">
+
+        <!--========================
+                LEFT
+        =========================-->
+
+        <aside class="left-panel">
+
+            <div class="tab-group">
+
+                <button class="tab-btn active"
+                        id="heroTab">
+
+                    <i class="fa-solid fa-user"></i>
+                    Tướng
+
+                </button>
+
+                <button class="tab-btn"
+                        id="skinTab">
+
+                    <i class="fa-solid fa-shirt"></i>
+                    Trang phục
+
+                </button>
+
+            </div>
+
+            <div
+                class="list-panel"
+                id="listPanel">
+
+                <!-- Character List -->
+
+            </div>
+
+        </aside>
+
+        <!--========================
+                CENTER
+        =========================-->
+
+        <section class="center-panel">
+
+            <div class="avatar-box">
+
+                <img
+                    id="characterAvatar"
+                    src="images/characters/default.png"
+                    alt="avatar">
+
+            </div>
+
+            <h2 id="characterName">
+                Tên nhân vật
+            </h2>
+
+            <div class="level-box">
+
+                <span>LV</span>
+
+                <span id="characterLevel">
+                    1
+                </span>
+
+            </div>
+
+            <div class="button-group">
+
+                <button
+                    id="selectBtn"
+                    class="select-btn">
+
+                    Chọn
+
+                </button>
+
+                <button
+                    id="upgradeBtn"
+                    class="upgrade-btn">
+
+                    Nâng cấp
+
+                </button>
+
+            </div>
+
+        </section>
+
+        <!--========================
+                RIGHT
+        =========================-->
+
+        <aside class="right-panel">
+
+            <!-- BASIC -->
+
+            <div class="card">
+
+                <h3>
+
+                    <i class="fa-solid fa-chart-simple"></i>
+
+                    Chỉ số cơ bản
+
+                </h3>
+
+                <div class="stat">
+
+                    <div class="stat-title">
+
+                        ❤️ HP
+
+                        <span id="hpValue">
+                            100
+                        </span>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            id="hpBar"
+                            class="fill hp">
+
+                        </div>
+
+                    </div>
+
                 </div>
-                <div class="stat-group">
-                    <label>Speed</label>
-                    <div class="bar-bg"><div class="bar-fill" style="width: 60%;"></div></div>
+
+                <div class="stat">
+
+                    <div class="stat-title">
+
+                        ⚡ Speed
+
+                        <span id="speedValue">
+                            40
+                        </span>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            id="speedBar"
+                            class="fill speed">
+
+                        </div>
+
+                    </div>
+
                 </div>
-                <div class="stat-group">
-                    <label>Crit</label>
-                    <div class="bar-bg"><div class="bar-fill" style="width: 45%;"></div></div>
+
+                <div class="stat">
+
+                    <div class="stat-title">
+
+                        🎯 Crit
+
+                        <span id="critValue">
+                            15%
+                        </span>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            id="critBar"
+                            class="fill crit">
+
+                        </div>
+
+                    </div>
+
                 </div>
-            </aside>
-        </main>
-    </div>
+
+            </div>
+
+            <!-- EXTRA -->
+
+            <div class="card">
+
+                <h3>
+
+                    <i class="fa-solid fa-star"></i>
+
+                    Chỉ số đặc biệt
+
+                </h3>
+
+                <div id="extraStats">
+
+                    <!-- JS Generate -->
+
+                </div>
+
+            </div>
+
+        </aside>
+
+    </main>
+
+</div>
+
+<script type="module" src="character.js"></script>
+
 </body>
 </html>
