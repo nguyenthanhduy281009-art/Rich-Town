@@ -4,38 +4,48 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="game-container">
-    <aside class="col-left">
-        <div class="selection-row">
-            <select id="charSelect"><option>Character</option></select>
-            <select id="skinSelect"><option>Skin</option></select>
-        </div>
-        <div class="char-list" id="charList"></div>
-    </aside>
+    <div class="game-wrapper">
+        <header class="top-nav">
+            <h2 class="title">NHÂN VẬT</h2>
+            <button class="back-btn">Quay lại</button>
+        </header>
 
-    <main class="col-center">
-        <div class="avatar-display">
-            <div class="avatar-circle" id="charAvatar"></div>
-        </div>
-        <h1 id="charName">Name</h1>
-        <div class="level-badge">LVL <span id="charLevel">1</span></div>
-    </main>
+        <main class="main-screen">
+            <aside class="hero-list">
+                <div class="hero-item active">Tanker</div>
+                <div class="hero-item">Hunter</div>
+                <div class="hero-item">Mage</div>
+                <div class="hero-item">Assassin</div>
+            </aside>
 
-    <aside class="col-right">
-        <div class="stats-panel">
-            <h2>Attributes</h2>
-            <div id="statsContainer"></div>
-            <h3>Sub-stats</h3>
-            <div id="subStatsContainer" class="sub-stats"></div>
-        </div>
-    </aside>
+            <section class="hero-preview">
+                <div class="avatar-glow">
+                    <div class="avatar-circle"></div>
+                </div>
+                <h1 class="hero-name">Tanker</h1>
+                <p class="hero-lv">LEVEL 10</p>
+                <div class="action-buttons">
+                    <button class="btn-primary">Chọn</button>
+                    <button class="btn-secondary">Nâng cấp</button>
+                </div>
+            </section>
 
-    <footer class="footer-actions">
-        <button class="btn-main">Select Character</button>
-        <button class="btn-main">Upgrade</button>
-        <button class="btn-main back">Back</button>
-    </footer>
-</div>
-<script type="module" src="main.js"></script>
+            <aside class="hero-stats">
+                <h3>Chỉ số</h3>
+                <div class="stat-group">
+                    <label>HP</label>
+                    <div class="bar-bg"><div class="bar-fill" style="width: 90%;"></div></div>
+                </div>
+                <div class="stat-group">
+                    <label>Speed</label>
+                    <div class="bar-bg"><div class="bar-fill" style="width: 60%;"></div></div>
+                </div>
+                <div class="stat-group">
+                    <label>Crit</label>
+                    <div class="bar-bg"><div class="bar-fill" style="width: 45%;"></div></div>
+                </div>
+            </aside>
+        </main>
+    </div>
 </body>
 </html>
