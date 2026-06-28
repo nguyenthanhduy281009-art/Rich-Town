@@ -1,10 +1,6 @@
+// File: data.js
 export const characters = [
-    {
-        id: 'tanker',
-        name: 'Tanker',
-        lv: 10,
-        stats: { hp: 100, speed: 40, crit: 5 },
-        skins: ['Mặc định', 'Hỏa ngục']
-    },
-    // Thêm tướng mới chỉ cần copy block này
+    { id: 'tanker', name: 'Tanker', level: 10, maxLevel: 20, hp: 80, speed: 40, crit: 10 },
+    { id: 'hunter', name: 'Hunter', level: 15, maxLevel: 25, hp: 50, speed: 90, crit: 40 },
+    { id: 'mage', name: 'Mage', level: 8, maxLevel: 20, hp: 40, speed: 60, crit: 20 }
 ];
