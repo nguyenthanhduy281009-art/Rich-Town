@@ -16,3 +16,14 @@ const STAT_LIMITS = {
     }
 
 };
+function getPercent(value,min,max){
+
+    return Math.max(
+        0,
+        Math.min(
+            100,
+            ((value-min)/(max-min))*100
+        )
+    );
+
+}
